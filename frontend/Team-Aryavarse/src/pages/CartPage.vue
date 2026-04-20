@@ -104,7 +104,9 @@
               <span>₹ {{ total.toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</span>
             </div>
 
-            <button class="checkout-btn">Proceed to Checkout</button>
+            <button class="checkout-btn" @click="goToCheckout">
+              Proceed to Checkout
+            </button>
 
             <button class="shopping-link" @click="$router.push('/')">
               Continue Shopping
@@ -118,32 +120,41 @@
 
 <script setup>
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { cart, removeFromCart, updateQty, loadCart } from 'src/stores/shop'
+
+const router = useRouter()
 
 onMounted(() => {
   loadCart()
 })
 
+const goToCheckout = () => {
+  const userId = localStorage.getItem('user_id')
+
+  if (userId) {
+    router.push('/checkout/address')
+  } else {
+    router.push('/login?redirect=/checkout/address')
+  }
+}
+
 const hasItems = computed(() => cart.value.length > 0)
 
-// subtotal
 const subtotal = computed(() => {
   return cart.value.reduce((sum, item) => {
     return sum + Number(item.price || 0) * Number(item.qty || 0)
   }, 0)
 })
 
-// shipping
 const shipping = computed(() => {
   return subtotal.value > 0 ? 0 : 0
 })
 
-// tax
 const tax = computed(() => {
   return subtotal.value * 0.18
 })
 
-// total
 const total = computed(() => {
   return subtotal.value + shipping.value + tax.value
 })

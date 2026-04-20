@@ -12,7 +12,7 @@ export default [
       { path: 'women', component: () => import('pages/WomenPage.vue') },
       { path: 'aprons', component: () => import('pages/Aprons.vue') },
 
-      // BULK (new override instead of old HomePage)
+      // BULK
       { path: 'bulk', component: () => import('pages/BulkOrder.vue') },
 
       // PRODUCT DETAILS
@@ -24,7 +24,13 @@ export default [
       // USER FEATURES
       { path: 'cart', component: () => import('pages/CartPage.vue') },
       { path: 'wishlist', component: () => import('pages/WishlistPage.vue') },
-      { path: 'profile', component: () => import('pages/ProfilePage.vue') }, // ✅ from old
+      { path: 'profile', component: () => import('pages/ProfilePage.vue') },
+
+      // ✅ ADD THESE CHECKOUT ROUTES
+      { path: 'checkout/address', component: () => import('pages/CheckoutAddress.vue') },
+      { path: 'checkout/payment', component: () => import('pages/CheckoutPayment.vue') },
+      { path: 'checkout/summary', component: () => import('pages/CheckoutSummary.vue') },
+       { path: 'checkout/confirmation', component: () => import('pages/CheckoutConfirmation.vue') },
 
       // FOOTER / INFO
       { path: 'about', component: () => import('pages/AboutPage.vue') },
@@ -32,26 +38,21 @@ export default [
     ]
   },
 
-  // AUTH LAYOUT
   {
     path: '/',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
       { path: 'login', component: () => import('pages/auth/LoginPage.vue') },
       { path: 'signup', component: () => import('pages/auth/SignupPage.vue') },
-
-      // ✅ from old file
       { path: 'forgot-password', component: () => import('pages/auth/ForgotPassword.vue') }
     ]
   },
 
-  // ✅ AUTH CALLBACK (important for OAuth / Firebase / etc.)
   {
     path: '/auth/callback',
     component: () => import('pages/AuthCallback.vue')
   },
 
-  // 404
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
