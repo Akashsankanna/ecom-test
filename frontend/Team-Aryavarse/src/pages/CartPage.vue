@@ -58,6 +58,17 @@
                 <q-icon name="delete_outline" size="22px" />
               </button>
             </div>
+
+            <!-- ONLY BUTTONS -->
+            <div class="cart-actions">
+              <button class="checkout-btn" @click="goToCheckout">
+                Proceed to Checkout
+              </button>
+
+              <button class="shopping-link" @click="$router.push('/')">
+                Continue Shopping
+              </button>
+            </div>
           </div>
 
           <!-- empty cart -->
@@ -65,50 +76,6 @@
             <h3>Your cart is empty</h3>
             <p>Add some products to continue shopping.</p>
             <button class="continue-btn" @click="$router.push('/')">
-              Continue Shopping
-            </button>
-          </div>
-        </div>
-
-        <!-- RIGHT SIDE -->
-        <div v-if="hasItems" class="cart-right">
-          <div class="summary-card">
-            <h2>Order Summary</h2>
-
-            <div class="summary-row">
-              <span>Subtotal</span>
-              <span>₹ {{ subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</span>
-            </div>
-
-            <div class="summary-row">
-              <span>Shipping</span>
-              <span>
-                {{ shipping === 0
-                  ? 'FREE'
-                  : '₹ ' + Number(shipping).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                }}
-              </span>
-            </div>
-
-            <div class="summary-row">
-              <span>Tax (GST 18%)</span>
-              <span>₹ {{ tax.toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</span>
-            </div>
-
-            <p class="shipping-msg">🎉 You've qualified for free shipping!</p>
-
-            <hr />
-
-            <div class="summary-row total-row">
-              <span>Total</span>
-              <span>₹ {{ total.toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</span>
-            </div>
-
-            <button class="checkout-btn" @click="goToCheckout">
-              Proceed to Checkout
-            </button>
-
-            <button class="shopping-link" @click="$router.push('/')">
               Continue Shopping
             </button>
           </div>
@@ -140,24 +107,6 @@ const goToCheckout = () => {
 }
 
 const hasItems = computed(() => cart.value.length > 0)
-
-const subtotal = computed(() => {
-  return cart.value.reduce((sum, item) => {
-    return sum + Number(item.price || 0) * Number(item.qty || 0)
-  }, 0)
-})
-
-const shipping = computed(() => {
-  return subtotal.value > 0 ? 0 : 0
-})
-
-const tax = computed(() => {
-  return subtotal.value * 0.18
-})
-
-const total = computed(() => {
-  return subtotal.value + shipping.value + tax.value
-})
 </script>
 
 <style lang="scss">

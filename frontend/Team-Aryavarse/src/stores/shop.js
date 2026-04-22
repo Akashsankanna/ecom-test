@@ -63,7 +63,7 @@ const resolveAssetImage = (imgPath) => {
 }
 
 const getFrontendImage = (item) => {
-  const backendName = String(item.product_name || '').trim().toLowerCase()
+  const backendName = String(item.product_name || item.title || '').trim().toLowerCase()
   const backendVariant = String(item.variant_name || '').trim().toLowerCase()
 
   // 1. exact color variant_id match inside colors[]
@@ -137,22 +137,38 @@ watch(
 export const loadCart = async () => {
   try {
     const data = await getCartApi()
-    const items = data?.items || []
+    const items = Array.isArray(data?.items) ? data.items : []
 
-    cart.value = items.map((item) => ({
-      id: item.cart_item_id || item.id,
-      cart_item_id: item.cart_item_id || item.id,
-      product_name: item.product_name || '',
-      title: item.product_name || '',
-      variant_name: item.variant_name || '',
-      price: Number(item.price || 0),
-      qty: Number(item.quantity || 1),
-      image_url: resolveAssetImage(item.image_url || getFrontendImage(item)),
-      image: resolveAssetImage(item.image_url || getFrontendImage(item)),
-      variant_id: item.variant_id || null,
-      size: item.size || '',
-      color: item.color || ''
-    }))
+    cart.value = items.map((item) => {
+      const finalImage = resolveAssetImage(item.image_url || getFrontendImage(item))
+
+      return {
+        id: Number(item.cart_item_id || item.id || 0),
+        cart_item_id: Number(item.cart_item_id || item.id || 0),
+        cart_id: Number(item.cart_id || 0),
+
+        product_id: Number(item.product_id || 0),
+        variant_id: Number(item.variant_id || 0),
+
+        product_name: item.product_name || '',
+        title: item.product_name || '',
+        variant_name: item.variant_name || '',
+
+        price: Number(item.price || 0),
+        customization_total: Number(item.customization_total || 0),
+        line_total: Number(item.line_total || 0),
+
+        qty: Number(item.quantity || 1),
+        quantity: Number(item.quantity || 1),
+
+        stock: Number(item.stock || 0),
+        size: item.size || '',
+        color: item.color || '',
+
+        image_url: finalImage,
+        image: finalImage,
+      }
+    })
 
     console.log('RAW CART API DATA:', data)
     console.log('MAPPED CART:', cart.value)
@@ -176,7 +192,7 @@ export const addToCart = async (productOrVariantId, quantity = 1) => {
     if (typeof productOrVariantId === 'object' && productOrVariantId !== null) {
       const product = productOrVariantId
 
-      qty = Number(product.qty || 1)
+      qty = Number(product.qty || product.quantity || 1)
 
       // first try direct product variant_id
       variantId = product.variant_id
@@ -204,7 +220,7 @@ export const addToCart = async (productOrVariantId, quantity = 1) => {
 
     await addToCartApi({
       variant_id: Number(variantId),
-      quantity: qty
+      quantity: Number(qty || 1)
     })
 
     await loadCart()
@@ -241,10 +257,6 @@ export const removeFromCart = async (productOrCartItemId) => {
 }
 
 // ----------------------
-// UPDATE QUANTITY (BACKEND)
-// supports:
-// 1) updateQty(id, 'inc')
-// 2) updateQty(productObject, 'inc')
 // ----------------------
 export const updateQty = async (productOrId, type) => {
   try {
@@ -257,13 +269,15 @@ export const updateQty = async (productOrId, type) => {
       )
     } else {
       item = cart.value.find(
-        (i) => Number(i.id) === Number(productOrId) || Number(i.cart_item_id) === Number(productOrId)
+        (i) =>
+          Number(i.id) === Number(productOrId) ||
+          Number(i.cart_item_id) === Number(productOrId)
       )
     }
 
     if (!item) return
 
-    let newQty = Number(item.qty || 1)
+    let newQty = Number(item.qty || item.quantity || 1)
 
     if (type === 'inc') newQty++
     if (type === 'dec') {
@@ -308,5 +322,5 @@ export const isInWishlist = (id) => {
 // CART COUNT
 // ----------------------
 export const cartCount = () => {
-  return cart.value.reduce((total, item) => total + Number(item.qty || 0), 0)
+  return cart.value.reduce((total, item) => total + Number(item.qty || item.quantity || 0), 0)
 }

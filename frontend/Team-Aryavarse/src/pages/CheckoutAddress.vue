@@ -100,12 +100,23 @@
             <span>₹ {{ grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}</span>
           </div>
 
-          <button class="proceed-btn" @click="deliverToThisAddress">
-            Proceed to Checkout
-          </button>
+          <div class="coupon-section">
+            <label class="coupon-label">Apply Coupon</label>
+            <div class="coupon-row">
+              <input
+                v-model.trim="couponCode"
+                type="text"
+                class="coupon-input"
+                placeholder="Enter coupon code"
+              />
+              <button class="apply-btn" @click="applyCoupon">
+                Apply
+              </button>
+            </div>
+          </div>
 
-          <button class="continue-shopping-btn" @click="goHome">
-            Continue Shopping
+          <button class="proceed-btn" type="button" @click="placeOrder">
+           Place Order
           </button>
         </div>
       </div>
@@ -293,13 +304,17 @@ import {
   getSelectedAddressId,
   saveSelectedAddressId,
   clearSelectedAddressId
-} from 'src/utils/checkoutStorage.js'
+} from 'src/utils/CheckoutStorage'
 import {
   fetchAddresses,
   createAddress,
   updateAddress,
   removeAddress
 } from 'src/service/addressService.js'
+import {
+  createRazorpayOrder,
+  verifyRazorpayPayment
+} from 'src/service/checkoutService'
 
 const router = useRouter()
 
@@ -310,6 +325,7 @@ const isEditMode = ref(false)
 const editingAddressId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const couponCode = ref('')
 
 const WAREHOUSE_PINCODE = '413005'
 
@@ -361,12 +377,10 @@ async function loadAddresses() {
     const savedId = getSelectedAddressId()
 
     if (savedId && addresses.value.some(addr => Number(addr.id) === Number(savedId))) {
-      selectedAddressId.value = savedId
+      selectedAddressId.value = Number(savedId)
     } else if (addresses.value.length > 0) {
-      const defaultAddress =
-        addresses.value.find(addr => addr.is_default) || addresses.value[0]
-
-      selectedAddressId.value = defaultAddress.id
+      const defaultAddress = addresses.value.find(addr => addr.is_default) || addresses.value[0]
+      selectedAddressId.value = Number(defaultAddress.id)
       saveSelectedAddressId(defaultAddress.id)
     } else {
       selectedAddressId.value = null
@@ -381,7 +395,7 @@ async function loadAddresses() {
 }
 
 function selectAddress(address) {
-  selectedAddressId.value = address.id
+  selectedAddressId.value = Number(address.id)
   saveSelectedAddressId(address.id)
 }
 
@@ -395,8 +409,136 @@ function deliverToThisAddress() {
   router.push('/checkout/payment')
 }
 
-function goHome() {
-  router.push('/')
+async function placeOrder() {
+  try {
+    const userId = Number(getUserId())
+    const addressId = Number(selectedAddressId.value)
+
+    if (!userId) {
+      alert('Login required')
+      return
+    }
+
+    if (!addressId) {
+      alert('Select address')
+      return
+    }
+
+    if (!cart.value.length) {
+      alert('Cart empty')
+      return
+    }
+
+    const sdkLoaded = await loadRazorpayScript()
+    if (!sdkLoaded) {
+      alert('Razorpay load failed')
+      return
+    }
+
+    // ✅ CREATE ORDER
+    const orderData = await createRazorpayOrder({
+      amount: Number(grandTotal.value),
+      currency: 'INR',
+      receipt: `receipt_${Date.now()}`,
+      user_id: userId
+    })
+
+    console.log('ORDER DATA =', orderData)
+
+    if (!orderData?.razorpay_order_id) {
+      alert('Order creation failed')
+      return
+    }
+
+    const options = {
+      key: orderData.key_id,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      name: 'Parallel',
+      order_id: orderData.razorpay_order_id,
+
+      handler: async function (response) {
+        try {
+          // ✅ VERIFY PAYMENT
+          const verifyRes = await verifyRazorpayPayment({
+            order_id: orderData.order_id || orderData.id || null,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            user_id: userId,
+            address_id: addressId
+          })
+
+          console.log('VERIFY =', verifyRes)
+
+          // ✅ SAFE SUCCESS CHECK
+          const isVerified =
+            verifyRes?.success === true ||
+            verifyRes?.status === 'success' ||
+            String(verifyRes?.message || '').toLowerCase().includes('verified')
+
+          if (isVerified) {
+            alert('Payment Success')
+
+            // 🔥 CLEAR CART (FRONTEND)
+            cart.value = []
+
+            // 🔥 CLEAR LOCAL STORAGE
+            localStorage.removeItem('cart')
+            localStorage.removeItem('guest_id')
+
+            // ✅ REDIRECT
+            router.push('/order-confirmed')
+
+          } else {
+            alert('Verification failed')
+          }
+
+        } catch (err) {
+          console.error('VERIFY ERROR =', err)
+          console.error('VERIFY ERROR DATA =', err?.response?.data)
+
+          const detail = err?.response?.data?.detail
+
+          if (Array.isArray(detail)) {
+            alert(detail.map(d => d.msg).join('\n'))
+          } else {
+            alert(detail || err?.response?.data?.message || 'Verify error')
+          }
+        }
+      }
+    }
+
+    const rzp = new window.Razorpay(options)
+
+    rzp.on('payment.failed', function (res) {
+      console.error(res)
+      alert(res?.error?.description || 'Payment failed')
+    })
+
+    rzp.open()
+
+  } catch (error) {
+    console.error('ERROR =', error)
+    console.log('FULL ERROR =', error?.response?.data)
+
+    const detail = error?.response?.data?.detail
+
+    if (Array.isArray(detail)) {
+      alert(detail.map(d => d.msg).join('\n'))
+    } else {
+      alert(detail || 'Something went wrong')
+    }
+  }
+}
+
+function applyCoupon() {
+  if (!couponCode.value) {
+    alert('Please enter coupon code')
+    return
+  }
+
+  alert(`Coupon "${couponCode.value}" applied`)
 }
 
 function openAddAddress() {
@@ -598,7 +740,7 @@ async function saveAddress() {
       editingAddressId.value
 
     if (finalAddressId) {
-      selectedAddressId.value = finalAddressId
+      selectedAddressId.value = Number(finalAddressId)
       saveSelectedAddressId(finalAddressId)
     }
 
@@ -606,7 +748,7 @@ async function saveAddress() {
     await loadAddresses()
   } catch (error) {
     console.error('Failed to save address:', error)
-    alert('Failed to save address')
+    alert(error?.response?.data?.detail || 'Failed to save address')
   } finally {
     saving.value = false
   }
@@ -626,6 +768,28 @@ const subtotal = computed(() => {
   }, 0)
 })
 
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true)
+      return
+    }
+
+    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(true))
+      existingScript.addEventListener('error', () => resolve(false))
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
+
 function getDistanceDeliveryCharge(address) {
   if (!address?.postal_code) return 80
 
@@ -642,28 +806,16 @@ const deliveryCharges = computed(() => {
   return getDistanceDeliveryCharge(selectedAddress.value)
 })
 
-function getGstRate(unitPrice) {
-  return Number(unitPrice) <= 2500 ? 0.05 : 0.18
-}
+const gstRate = computed(() => {
+  return subtotal.value <= 2500 ? 0.05 : 0.18
+})
 
 const gstLabel = computed(() => {
-  if (!cart.value.length) return 'Tax (GST)'
-
-  const hasLowSlab = cart.value.some(item => Number(item.price || 0) <= 2500)
-  const hasHighSlab = cart.value.some(item => Number(item.price || 0) > 2500)
-
-  if (hasLowSlab && hasHighSlab) return 'Tax (GST)'
-  if (hasLowSlab) return 'Tax (GST 5%)'
-  return 'Tax (GST 18%)'
+  return subtotal.value <= 2500 ? 'Tax (GST 5%)' : 'Tax (GST 18%)'
 })
 
 const tax = computed(() => {
-  return cart.value.reduce((sum, item) => {
-    const unitPrice = Number(item.price || 0)
-    const qty = Number(item.qty || 0)
-    const gstRate = getGstRate(unitPrice)
-    return sum + unitPrice * qty * gstRate
-  }, 0)
+  return subtotal.value * gstRate.value
 })
 
 const grandTotal = computed(() => {
@@ -859,6 +1011,46 @@ const grandTotal = computed(() => {
   margin-bottom: 24px;
 }
 
+.coupon-section {
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+
+.coupon-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #101828;
+  margin-bottom: 10px;
+}
+
+.coupon-row {
+  display: flex;
+  gap: 10px;
+}
+
+.coupon-input {
+  flex: 1;
+  height: 48px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+}
+
+.apply-btn {
+  border: none;
+  border-radius: 10px;
+  background: #0f6c73;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 0 22px;
+  cursor: pointer;
+}
+
 .proceed-btn {
   width: 100%;
   border: none;
@@ -870,17 +1062,6 @@ const grandTotal = computed(() => {
   padding: 16px;
   cursor: pointer;
   margin-top: 8px;
-}
-
-.continue-shopping-btn {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: #18a7a2;
-  font-size: 16px;
-  font-weight: 700;
-  padding: 16px 0 0;
-  cursor: pointer;
 }
 
 .address-dialog-card {
@@ -936,6 +1117,14 @@ const grandTotal = computed(() => {
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
+  }
+
+  .coupon-row {
+    flex-direction: column;
+  }
+
+  .apply-btn {
+    height: 48px;
   }
 }
 </style>

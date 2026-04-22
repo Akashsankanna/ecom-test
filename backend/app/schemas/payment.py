@@ -13,4 +13,5 @@ class RazorpayVerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
-    local_order_id: Optional[int] = None
+    user_id: int
+    address_id: int

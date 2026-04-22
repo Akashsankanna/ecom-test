@@ -26,15 +26,15 @@ export default [
       { path: 'wishlist', component: () => import('pages/WishlistPage.vue') },
       { path: 'profile', component: () => import('pages/ProfilePage.vue') },
 
-      // ✅ ADD THESE CHECKOUT ROUTES
+      // CHECKOUT
       { path: 'checkout/address', component: () => import('pages/CheckoutAddress.vue') },
-      { path: 'checkout/payment', component: () => import('pages/CheckoutPayment.vue') },
-      { path: 'checkout/summary', component: () => import('pages/CheckoutSummary.vue') },
-       { path: 'checkout/confirmation', component: () => import('pages/CheckoutConfirmation.vue') },
+
+      // ORDER SUCCESS
+      { path: 'order-confirmed', component: () => import('pages/OrderConfirmation.vue') },
 
       // FOOTER / INFO
       { path: 'about', component: () => import('pages/AboutPage.vue') },
-      { path: 'contact', component: () => import('pages/ContactPage.vue') },
+      { path: 'contact', component: () => import('pages/ContactPage.vue') }
     ]
   },
 

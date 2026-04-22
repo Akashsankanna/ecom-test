@@ -5,6 +5,7 @@ from app.db.session import get_db
 from app.db import base_class  # keep this for model registration
 from app.api.routes.address import router as address_router
 from app.api.routes.checkout_route import router as checkout_router
+from app.api.routes.bulk_orders import router as bulk_routers
 
 from app.api.routes import auth, test_auth
 from app.api.routes.cart import router as cart_router
@@ -36,7 +37,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://192.168.1.11:9001",
-        "https://gttw6tjg-9000.inc1.devtunnels.ms/"
+       
         "https://gttw6tjg-9000.inc1.devtunnels.ms/"
         "http://192.168.100.55:9000"
     ],
@@ -64,6 +65,7 @@ app.include_router(cart_router)
 app.include_router(products_router)
 app.include_router(payment_router)
 app.include_router(wishlist_router)
+app.include_router(bulk_routers)
 
 # Admin routers
 app.include_router(dashboard.router)

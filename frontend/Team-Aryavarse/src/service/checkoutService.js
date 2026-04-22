@@ -1,15 +1,16 @@
 import { api } from 'boot/axios'
 
-// ==========================
+
 // CHECKOUT APIs
-// ==========================
+
+
 export async function createCheckoutSession(payload) {
   const response = await api.post('/checkout/', {
     user_id: Number(payload.user_id),
     address_id: Number(payload.address_id),
     coupon_code: payload.coupon_code || null,
     shipping_amount: Number(payload.shipping_amount || 0),
-    payment_method: payload.payment_method
+    payment_method: payload.payment_method || null
   })
   return response.data
 }
@@ -37,25 +38,38 @@ export async function fetchCheckoutSummary(
 export async function createRazorpayOrder({
   amount,
   currency = 'INR',
-  receipt
+  receipt,
+  user_id = null
 }) {
   const response = await api.post('/razorpay/create-order', {
     amount: Number(amount),
     currency,
-    receipt: receipt || `receipt_${Date.now()}`
+    receipt: receipt || `receipt_${Date.now()}`,
+    user_id: user_id ? Number(user_id) : null
   })
   return response.data
 }
 
 export async function verifyRazorpayPayment({
+  order_id = null,
   razorpay_order_id,
   razorpay_payment_id,
-  razorpay_signature
+  razorpay_signature,
+  user_id,
+  address_id
 }) {
-  const response = await api.post('/razorpay/verify-payment', {
+  const payload = {
     razorpay_order_id,
     razorpay_payment_id,
-    razorpay_signature
-  })
+    razorpay_signature,
+    user_id: Number(user_id),
+    address_id: Number(address_id)
+  }
+
+  if (order_id !== null && order_id !== undefined && order_id !== '') {
+    payload.order_id = Number(order_id)
+  }
+
+  const response = await api.post('/razorpay/verify-payment', payload)
   return response.data
 }
