@@ -574,7 +574,7 @@
 
 <script>
 import { bannerImg } from 'src/data/imageHelper'
-import { fetchBulkOrderOptions, submitBulkOrderRequest } from 'src/service/bulkOrderService'
+import { fetchBulkOrderOptions, submitBulkOrderRequest } from 'src/service/bulkorderservice'
 
 export default {
   name: 'BulkOrderPage',

@@ -1,7 +1,6 @@
 <template>
   <q-page class="order-page q-pa-md q-pa-lg-xl">
     <div class="page-container">
-      <!-- Top Success Header -->
       <q-card flat class="top-card q-mb-lg">
         <div class="row items-center justify-between q-col-gutter-lg">
           <div class="col-12 col-md-7">
@@ -18,7 +17,7 @@
                   Your order has been placed successfully.
                 </div>
                 <div class="order-id q-mt-sm">
-                  #ORD12345
+                  #ORD{{ order?.id || orderId }}
                 </div>
               </div>
             </div>
@@ -26,7 +25,9 @@
 
           <div class="col-12 col-md-5 text-md-right">
             <div class="delivery-label">Estimated Delivery</div>
-            <div class="delivery-date">25 Apr 2026</div>
+            <div class="delivery-date">
+              {{ order?.estimated_delivery_date || 'Will be updated soon' }}
+            </div>
             <div class="delivery-note text-grey-7">
               Standard delivery timeline
             </div>
@@ -34,158 +35,171 @@
         </div>
       </q-card>
 
-      <!-- Main Grid -->
       <div class="row q-col-gutter-lg">
-        <!-- Left Column -->
         <div class="col-12 col-lg-7">
-          <!-- Product Card -->
           <q-card flat class="section-card q-mb-lg">
             <div class="section-title">Product Details</div>
 
-            <div class="product-box">
+            <div
+              v-for="item in orderItems"
+              :key="item.id || item.product_id || item.variant_id"
+              class="product-box q-mb-md"
+            >
               <q-img
-                src="https://via.placeholder.com/140x160?text=Product"
+                :src="item.image_url || 'https://via.placeholder.com/140x160?text=Product'"
                 class="product-image"
                 fit="cover"
               />
 
               <div class="product-info">
                 <div class="product-name">
-                  Premium Medical Scrub Set
+                  {{ item.product_name || 'Product' }}
                 </div>
 
                 <div class="product-meta q-mt-sm">
-                  Variant: Medium / Teal Blue
+                  Variant: {{ item.variant_name || 'N/A' }}
                 </div>
 
                 <div class="product-meta">
-                  Quantity: 2
+                  Quantity: {{ item.quantity || 1 }}
                 </div>
 
                 <div class="product-price q-mt-md">
-                  ₹1,998
+                  ₹{{ item.total_price ?? item.price ?? 0 }}
                 </div>
               </div>
             </div>
+
+            <div v-if="!orderItems.length" class="product-meta">
+              No product details available.
+            </div>
           </q-card>
 
-          <!-- Delivery Address -->
           <q-card flat class="section-card q-mb-lg">
             <div class="section-title">Delivery Address</div>
 
             <div class="info-block">
-              <div class="info-name">Akash Sankanna</div>
-              <div class="info-line">Flat 204, Sai Residency</div>
-              <div class="info-line">College Road, Nashik</div>
-              <div class="info-line">Maharashtra - 422005</div>
-              <div class="info-line">Phone: +91 9876543210</div>
+              <div class="info-name">
+                {{ shippingAddress.full_name || 'Customer Name' }}
+              </div>
+              <div class="info-line">
+                {{ shippingAddress.line1 || shippingAddress.address_line1 || 'Address line 1' }}
+              </div>
+              <div class="info-line">
+                {{ shippingAddress.line2 || shippingAddress.address_line2 || '' }}
+              </div>
+              <div class="info-line">
+                <span v-if="shippingAddress.landmark">{{ shippingAddress.landmark }}, </span>
+                {{ shippingAddress.city || '' }}
+                <span v-if="shippingAddress.state">, {{ shippingAddress.state }}</span>
+                <span v-if="shippingAddress.pincode || shippingAddress.postal_code">
+                  - {{ shippingAddress.pincode || shippingAddress.postal_code }}
+                </span>
+              </div>
+              <div class="info-line">
+                Phone: {{ shippingAddress.phone || 'Not available' }}
+              </div>
             </div>
           </q-card>
 
-          <!-- Courier Details -->
           <q-card flat class="section-card">
             <div class="section-title">Courier / Tracking Info</div>
 
             <div class="row q-col-gutter-md">
               <div class="col-12 col-md-6">
                 <div class="mini-info-label">Courier Partner</div>
-                <div class="mini-info-value">Delhivery</div>
+                <div class="mini-info-value">
+                  {{ order?.courier_name || 'Will be assigned soon' }}
+                </div>
               </div>
 
               <div class="col-12 col-md-6">
                 <div class="mini-info-label">Tracking ID</div>
-                <div class="mini-info-value">TRK9823412456</div>
+                <div class="mini-info-value">
+                  {{ order?.tracking_id || 'Will be updated soon' }}
+                </div>
               </div>
             </div>
           </q-card>
         </div>
 
-        <!-- Right Column -->
         <div class="col-12 col-lg-5">
-          <!-- Tracking Status -->
           <q-card flat class="section-card q-mb-lg">
-           <div class="section-title">Tracking Status</div>
-           <div class="tracking-list">
-     <div
-       v-for="(step, index) in trackingSteps"
-      :key="index"
-      class="tracking-item"
-     >
-      <div class="tracking-left">
+            <div class="section-title">Tracking Status</div>
+            <div class="tracking-list">
+              <div
+                v-for="(step, index) in trackingSteps"
+                :key="index"
+                class="tracking-item"
+              >
+                <div class="tracking-left">
+                  <div
+                    class="tracking-dot"
+                    :class="{
+                      completed: step.status === 'completed',
+                      active: step.status === 'active',
+                      pending: step.status === 'pending'
+                    }"
+                  >
+                    <q-icon v-if="step.status === 'completed'" name="check" size="16px" />
+                    <q-icon v-else-if="step.status === 'active'" name="schedule" size="15px" />
+                  </div>
 
-        <!-- DOT -->
-        <div
-          class="tracking-dot"
-          :class="{
-            completed: step.status === 'completed',
-            active: step.status === 'active',
-            pending: step.status === 'pending'
-          }"
-        >
-          <q-icon v-if="step.status === 'completed'" name="check" size="16px" />
-          <q-icon v-else-if="step.status === 'active'" name="schedule" size="15px" />
-        </div>
+                  <div
+                    v-if="index !== trackingSteps.length - 1"
+                    class="tracking-line"
+                    :class="{
+                      'line-completed':
+                        step.status === 'completed' || step.status === 'active'
+                    }"
+                  />
+                </div>
 
-        <!-- LINE -->
-        <div
-          v-if="index !== trackingSteps.length - 1"
-          class="tracking-line"
-          :class="{
-            'line-completed':
-              step.status === 'completed' ||
-              step.status === 'active'
-          }"
-        />
+                <div class="tracking-content">
+                  <div class="tracking-title">
+                    {{ step.title }}
+                  </div>
+                  <div class="tracking-subtitle">
+                    {{ step.subtitle }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </q-card>
 
-      </div>
-
-      <!-- TEXT -->
-      <div class="tracking-content">
-        <div class="tracking-title">
-          {{ step.title }}
-        </div>
-        <div class="tracking-subtitle">
-          {{ step.subtitle }}
-        </div>
-      </div>
-
-    </div>
-  </div>
-</q-card>
-
-          <!-- Payment Summary -->
           <q-card flat class="section-card q-mb-lg">
             <div class="section-title">Payment Summary</div>
 
             <div class="summary-row">
               <span>Subtotal</span>
-              <span>₹1,694</span>
+              <span>₹{{ order?.subtotal ?? 0 }}</span>
             </div>
 
             <div class="summary-row">
               <span>GST (18%)</span>
-              <span>₹304</span>
+              <span>₹{{ order?.tax_amount ?? order?.gst_amount ?? 0 }}</span>
             </div>
 
             <div class="summary-row">
               <span>Shipping</span>
-              <span>Free</span>
+              <span>
+                {{ Number(order?.shipping_amount ?? 0) === 0 ? 'Free' : `₹${order?.shipping_amount}` }}
+              </span>
             </div>
 
             <q-separator class="q-my-md" />
 
             <div class="summary-row total-row">
               <span>Total</span>
-              <span>₹1,998</span>
+              <span>₹{{ order?.grand_total ?? order?.total_amount ?? 0 }}</span>
             </div>
 
             <div class="payment-badge q-mt-md">
               <q-icon name="verified" size="18px" class="q-mr-xs" />
-              Payment Successful
+              {{ order?.payment_status === 'paid' ? 'Payment Successful' : (order?.payment_status || 'Payment Successful') }}
             </div>
           </q-card>
 
-          <!-- Actions -->
           <div class="row q-col-gutter-sm">
             <div class="col-12 col-sm-6">
               <q-btn
@@ -201,7 +215,7 @@
                 unelevated
                 class="full-width action-btn primary-btn"
                 label="View Orders"
-                @click="$router.push('/orders')"
+                @click="$router.push({ path: '/orders', query: { highlight: order?.id || orderId } })"
               />
             </div>
           </div>
@@ -212,41 +226,86 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { getOrderById } from 'src/service/orderService.js'
+import { getUserId } from 'src/utils/CheckoutStorage'
+
 defineOptions({
   name: 'OrderConfirmationPage'
 })
-const trackingSteps = [
-  {
-    title: 'Order Placed',
-    subtitle: 'Your order has been placed successfully',
-    status: 'completed'
-  },
-  {
-    title: 'Confirmed',
-    subtitle: 'Your payment and order details are confirmed',
-    status: 'completed'
-  },
-  {
-    title: 'Processing',
-    subtitle: 'Your items are being prepared for shipment',
-    status: 'active'
-  },
-  {
-    title: 'Shipped',
-    subtitle: 'Your package will be dispatched soon',
-    status: 'pending'
-  },
-  {
-    title: 'Out for Delivery',
-    subtitle: 'Courier partner will deliver your order',
-    status: 'pending'
-  },
-  {
-    title: 'Delivered',
-    subtitle: 'Package delivered successfully',
-    status: 'pending'
+
+const route = useRoute()
+const orderId = route.params.orderId
+const userId = Number(getUserId())
+
+const order = ref(null)
+const loading = ref(true)
+
+const orderItems = computed(() => {
+  return order.value?.items || order.value?.order_items || []
+})
+
+const shippingAddress = computed(() => {
+  return order.value?.shipping_address || order.value?.address || {}
+})
+
+const trackingSteps = computed(() => {
+  const status = order.value?.order_status || 'pending'
+
+  return [
+    {
+      title: 'Order Placed',
+      subtitle: 'Your order has been placed successfully',
+      status: 'completed'
+    },
+    {
+      title: 'Confirmed',
+      subtitle: 'Your payment and order details are confirmed',
+      status: ['confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'].includes(status)
+        ? 'completed'
+        : status === 'pending' ? 'active' : 'pending'
+    },
+    {
+      title: 'Processing',
+      subtitle: 'Your items are being prepared for shipment',
+      status: ['processing', 'shipped', 'out_for_delivery', 'delivered'].includes(status)
+        ? 'completed'
+        : status === 'confirmed' ? 'active' : 'pending'
+    },
+    {
+      title: 'Shipped',
+      subtitle: 'Your package has been dispatched',
+      status: ['shipped', 'out_for_delivery', 'delivered'].includes(status)
+        ? 'completed'
+        : status === 'processing' ? 'active' : 'pending'
+    },
+    {
+      title: 'Out for Delivery',
+      subtitle: 'Courier partner will deliver your order',
+      status: ['out_for_delivery', 'delivered'].includes(status)
+        ? 'completed'
+        : status === 'shipped' ? 'active' : 'pending'
+    },
+    {
+      title: 'Delivered',
+      subtitle: 'Package delivered successfully',
+      status: status === 'delivered' ? 'completed' : 'pending'
+    }
+  ]
+})
+
+onMounted(async () => {
+  try {
+    const res = await getOrderById(orderId, userId)
+    order.value = res?.data || res
+    console.log('ORDER CONFIRMATION DATA =', order.value)
+  } catch (error) {
+    console.error('ORDER FETCH ERROR:', error)
+  } finally {
+    loading.value = false
   }
-]
+})
 </script>
 
 <style scoped>

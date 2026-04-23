@@ -37,15 +37,17 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://192.168.1.11:9001",
-       
-        "https://gttw6tjg-9000.inc1.devtunnels.ms/"
-        "http://192.168.100.55:9000"
+        "https://gttw6tjg-9000.inc1.devtunnels.ms",
+        "http://192.168.100.55:9000",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://192.168.100.50:8081",
+        "http://192.168.1.30:8081"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Root
 @app.get("/", tags=["Root"])
 def root():

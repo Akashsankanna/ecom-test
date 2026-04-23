@@ -29,8 +29,9 @@ export default [
       // CHECKOUT
       { path: 'checkout/address', component: () => import('pages/CheckoutAddress.vue') },
 
-      // ORDER SUCCESS
-      { path: 'order-confirmed', component: () => import('pages/OrderConfirmation.vue') },
+      // ORDERS
+      { path: 'orders', component: () => import('pages/OrderConfirmation.vue') },
+      { path: 'order-confirmation/:orderId', component: () => import('pages/OrderConfirmation.vue') },
 
       // FOOTER / INFO
       { path: 'about', component: () => import('pages/AboutPage.vue') },

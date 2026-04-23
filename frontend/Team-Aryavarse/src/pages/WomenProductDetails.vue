@@ -309,7 +309,7 @@ import { womenProducts } from 'src/data/womenProducts'
 import { addToCart } from 'src/stores/shop'
 import sizeChartImg from 'src/assets/size_chart/size-chart.png'
 import measureImg from 'src/assets/size_chart/measure.png'
-import ProductCustomization from 'components/ProductCustomization.vue'
+//import ProductCustomization from 'components/ProductCustomization.vue'
 
 //customization
 const customizationData = ref(null)

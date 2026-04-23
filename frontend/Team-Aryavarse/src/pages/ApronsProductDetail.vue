@@ -322,7 +322,7 @@
 import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from 'boot/axios'
-import ProductCustomization from 'components/ProductCustomization.vue'
+//import ProductCustomization from 'components/ProductCustomization.vue'
 
 // =========================
 // ROUTER
@@ -665,5 +665,5 @@ const handleBuyNow = async () => {
 </script>
 
 <style lang="scss">
-@import 'src/css/aprons-product-details.scss';
+//@import 'src/css/aprons-product-details.scss';
 </style>

@@ -61,11 +61,11 @@
             <span>My Wishlist</span>
             <q-icon name="chevron_right" size="18px" class="chevron" />
           </div>
-          <div class="profile-link" @click="$router.push('/orders')">
+          <div class="profile-link" @click="goToOrderConfirmation">
             <span class="link-icon" style="background:#E8F8F5">
               <q-icon name="receipt_long" size="18px" style="color:#1a7a6e" />
             </span>
-            <span>Order History</span>
+            <span>My Orders</span>
             <q-icon name="chevron_right" size="18px" class="chevron" />
           </div>
           <div class="profile-link" @click="$router.push('/')">
@@ -87,8 +87,20 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 
+
 const router = useRouter()
 const authStore = useAuthStore()
+
+function goToOrderConfirmation() {
+  const lastOrderId = localStorage.getItem('last_order_id')
+
+  if (lastOrderId) {
+    router.push(`/order-confirmation/${lastOrderId}`)
+  } else {
+    alert('No recent order found')
+    router.push('/orders') // fallback
+  }
+}
 
 onMounted(() => {
   if (!authStore.token) {

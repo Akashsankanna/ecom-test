@@ -70,7 +70,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { products } from 'src/data/products'
+//import { products } from 'src/data/products'
 import { addToCart, toggleWishlist } from 'src/stores/shop'
 
 const route = useRoute()

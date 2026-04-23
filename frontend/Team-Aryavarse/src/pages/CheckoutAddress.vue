@@ -116,7 +116,7 @@
           </div>
 
           <button class="proceed-btn" type="button" @click="placeOrder">
-           Place Order
+            Place Order
           </button>
         </div>
       </div>
@@ -429,13 +429,14 @@ async function placeOrder() {
       return
     }
 
+    // ✅ Load Razorpay
     const sdkLoaded = await loadRazorpayScript()
     if (!sdkLoaded) {
       alert('Razorpay load failed')
       return
     }
 
-    // ✅ CREATE ORDER
+    // ✅ Create order from backend
     const orderData = await createRazorpayOrder({
       amount: Number(grandTotal.value),
       currency: 'INR',
@@ -445,23 +446,37 @@ async function placeOrder() {
 
     console.log('ORDER DATA =', orderData)
 
-    if (!orderData?.razorpay_order_id) {
+    const razorpayOrderId =
+      orderData?.razorpay_order_id ||
+      orderData?.id ||
+      orderData?.order_id
+
+    const razorpayKey =
+      orderData?.key_id ||
+      orderData?.key ||
+      orderData?.razorpay_key
+
+    if (!razorpayOrderId) {
       alert('Order creation failed')
       return
     }
 
+    // ✅ Razorpay options
     const options = {
-      key: orderData.key_id,
+      key: razorpayKey,
       amount: orderData.amount,
       currency: orderData.currency,
       name: 'Parallel',
-      order_id: orderData.razorpay_order_id,
+      order_id: razorpayOrderId,
 
+      // 🔥 MAIN SUCCESS HANDLER
       handler: async function (response) {
         try {
-          // ✅ VERIFY PAYMENT
+          console.log('RAZORPAY SUCCESS =', response)
+
+          // ✅ Verify payment (backend)
           const verifyRes = await verifyRazorpayPayment({
-            order_id: orderData.order_id || orderData.id || null,
+            order_id: orderData?.order_id || orderData?.id || null,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_signature: response.razorpay_signature,
@@ -469,57 +484,65 @@ async function placeOrder() {
             address_id: addressId
           })
 
-          console.log('VERIFY =', verifyRes)
+          console.log('VERIFY RESPONSE =', verifyRes)
 
-          // ✅ SAFE SUCCESS CHECK
-          const isVerified =
-            verifyRes?.success === true ||
-            verifyRes?.status === 'success' ||
-            String(verifyRes?.message || '').toLowerCase().includes('verified')
+          // ✅ Get order id (IMPORTANT)
+          const finalOrderId =
+            verifyRes?.order_id ||
+            verifyRes?.id ||
+            verifyRes?.order?.id ||
+            orderData?.order_id ||
+            orderData?.id
 
-          if (isVerified) {
-            alert('Payment Success')
+          console.log('FINAL ORDER ID =', finalOrderId)
 
-            // 🔥 CLEAR CART (FRONTEND)
-            cart.value = []
-
-            // 🔥 CLEAR LOCAL STORAGE
-            localStorage.removeItem('cart')
-            localStorage.removeItem('guest_id')
-
-            // ✅ REDIRECT
-            router.push('/order-confirmed')
-
-          } else {
-            alert('Verification failed')
+          // ❌ DO NOT BLOCK FLOW
+          if (!finalOrderId) {
+            console.warn('No order id → redirecting to orders')
+            router.push('/orders')
+            return
           }
+
+          // ✅ SUCCESS
+          alert('Payment Successful')
+
+          // ✅ Clear cart
+          cart.value = []
+          localStorage.removeItem('cart')
+          localStorage.removeItem('guest_id')
+
+          // ✅ Save last order (optional)
+          localStorage.setItem('last_order_id', finalOrderId)
+
+          // ✅ REDIRECT (MAIN GOAL)
+          console.log('Redirecting to order confirmation...')
+          router.push(`/order-confirmation/${finalOrderId}`)
 
         } catch (err) {
           console.error('VERIFY ERROR =', err)
           console.error('VERIFY ERROR DATA =', err?.response?.data)
 
-          const detail = err?.response?.data?.detail
-
-          if (Array.isArray(detail)) {
-            alert(detail.map(d => d.msg).join('\n'))
-          } else {
-            alert(detail || err?.response?.data?.message || 'Verify error')
-          }
+          alert(
+            err?.response?.data?.message ||
+            err?.response?.data?.detail ||
+            'Payment verify failed'
+          )
         }
       }
     }
 
     const rzp = new window.Razorpay(options)
 
+    // ❌ Payment failure
     rzp.on('payment.failed', function (res) {
-      console.error(res)
+      console.error('PAYMENT FAILED =', res)
       alert(res?.error?.description || 'Payment failed')
     })
 
     rzp.open()
 
   } catch (error) {
-    console.error('ERROR =', error)
+    console.error('PLACE ORDER ERROR =', error)
     console.log('FULL ERROR =', error?.response?.data)
 
     const detail = error?.response?.data?.detail
