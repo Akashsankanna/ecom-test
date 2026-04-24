@@ -29,14 +29,26 @@ export default [
       // CHECKOUT
       { path: 'checkout/address', component: () => import('pages/CheckoutAddress.vue') },
 
+
       // ORDERS
-      { path: 'orders', component: () => import('pages/OrderConfirmation.vue') },
+      { path: 'orders', component: () => import('pages/MyOrders.vue') },
       { path: 'order-confirmation/:orderId', component: () => import('pages/OrderConfirmation.vue') },
 
       // FOOTER / INFO
       { path: 'about', component: () => import('pages/AboutPage.vue') },
       { path: 'contact', component: () => import('pages/ContactPage.vue') }
     ]
+  },
+  { path: '/order-confirmation',
+    component: () => import('src/layouts/Blanklayout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/OrderConfirmation.vue')
+      }
+    ]
+
+
   },
 
   {

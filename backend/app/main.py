@@ -12,6 +12,7 @@ from app.api.routes.cart import router as cart_router
 from app.api.routes.products import router as products_router
 from app.api.routes.payments import router as payment_router
 from app.api.routes.wishlist import router as wishlist_router
+from app.api.routes.orders import router as orders_router 
 
 from app.api.routes.admin import (
     dashboard,
@@ -42,7 +43,8 @@ app.add_middleware(
         "http://localhost:8081",
         "http://127.0.0.1:8081",
         "http://192.168.100.50:8081",
-        "http://192.168.1.30:8081"
+        "http://192.168.1.30:8081",
+        "https://bureau-agenda-packets-from.trycloudflare.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -78,3 +80,4 @@ app.include_router(support_admin.router)
 app.include_router(inventory_admin.router)
 app.include_router(address_router)
 app.include_router(checkout_router)
+app. include_router(orders_router)

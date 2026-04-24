@@ -1,592 +1,270 @@
 <template>
-  <q-page class="order-page q-pa-md q-pa-lg-xl">
-    <div class="page-container">
-      <q-card flat class="top-card q-mb-lg">
-        <div class="row items-center justify-between q-col-gutter-lg">
-          <div class="col-12 col-md-7">
-            <div class="row items-center no-wrap">
-              <div class="success-icon-wrapper q-mr-md">
-                <q-icon name="check_circle" size="40px" class="success-icon" />
-              </div>
+  <q-page class="order-page flex flex-center column text-center">
 
-              <div>
-                <div class="text-h5 text-weight-bold text-dark">
-                  Order Confirmed
-                </div>
-                <div class="text-subtitle2 text-grey-7 q-mt-xs">
-                  Your order has been placed successfully.
-                </div>
-                <div class="order-id q-mt-sm">
-                  #ORD{{ order?.id || orderId }}
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="success-wrap">
+      <div class="ring ring-one"></div>
+      <div class="ring ring-two"></div>
 
-          <div class="col-12 col-md-5 text-md-right">
-            <div class="delivery-label">Estimated Delivery</div>
-            <div class="delivery-date">
-              {{ order?.estimated_delivery_date || 'Will be updated soon' }}
-            </div>
-            <div class="delivery-note text-grey-7">
-              Standard delivery timeline
-            </div>
-          </div>
-        </div>
-      </q-card>
-
-      <div class="row q-col-gutter-lg">
-        <div class="col-12 col-lg-7">
-          <q-card flat class="section-card q-mb-lg">
-            <div class="section-title">Product Details</div>
-
-            <div
-              v-for="item in orderItems"
-              :key="item.id || item.product_id || item.variant_id"
-              class="product-box q-mb-md"
-            >
-              <q-img
-                :src="item.image_url || 'https://via.placeholder.com/140x160?text=Product'"
-                class="product-image"
-                fit="cover"
-              />
-
-              <div class="product-info">
-                <div class="product-name">
-                  {{ item.product_name || 'Product' }}
-                </div>
-
-                <div class="product-meta q-mt-sm">
-                  Variant: {{ item.variant_name || 'N/A' }}
-                </div>
-
-                <div class="product-meta">
-                  Quantity: {{ item.quantity || 1 }}
-                </div>
-
-                <div class="product-price q-mt-md">
-                  ₹{{ item.total_price ?? item.price ?? 0 }}
-                </div>
-              </div>
-            </div>
-
-            <div v-if="!orderItems.length" class="product-meta">
-              No product details available.
-            </div>
-          </q-card>
-
-          <q-card flat class="section-card q-mb-lg">
-            <div class="section-title">Delivery Address</div>
-
-            <div class="info-block">
-              <div class="info-name">
-                {{ shippingAddress.full_name || 'Customer Name' }}
-              </div>
-              <div class="info-line">
-                {{ shippingAddress.line1 || shippingAddress.address_line1 || 'Address line 1' }}
-              </div>
-              <div class="info-line">
-                {{ shippingAddress.line2 || shippingAddress.address_line2 || '' }}
-              </div>
-              <div class="info-line">
-                <span v-if="shippingAddress.landmark">{{ shippingAddress.landmark }}, </span>
-                {{ shippingAddress.city || '' }}
-                <span v-if="shippingAddress.state">, {{ shippingAddress.state }}</span>
-                <span v-if="shippingAddress.pincode || shippingAddress.postal_code">
-                  - {{ shippingAddress.pincode || shippingAddress.postal_code }}
-                </span>
-              </div>
-              <div class="info-line">
-                Phone: {{ shippingAddress.phone || 'Not available' }}
-              </div>
-            </div>
-          </q-card>
-
-          <q-card flat class="section-card">
-            <div class="section-title">Courier / Tracking Info</div>
-
-            <div class="row q-col-gutter-md">
-              <div class="col-12 col-md-6">
-                <div class="mini-info-label">Courier Partner</div>
-                <div class="mini-info-value">
-                  {{ order?.courier_name || 'Will be assigned soon' }}
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="mini-info-label">Tracking ID</div>
-                <div class="mini-info-value">
-                  {{ order?.tracking_id || 'Will be updated soon' }}
-                </div>
-              </div>
-            </div>
-          </q-card>
-        </div>
-
-        <div class="col-12 col-lg-5">
-          <q-card flat class="section-card q-mb-lg">
-            <div class="section-title">Tracking Status</div>
-            <div class="tracking-list">
-              <div
-                v-for="(step, index) in trackingSteps"
-                :key="index"
-                class="tracking-item"
-              >
-                <div class="tracking-left">
-                  <div
-                    class="tracking-dot"
-                    :class="{
-                      completed: step.status === 'completed',
-                      active: step.status === 'active',
-                      pending: step.status === 'pending'
-                    }"
-                  >
-                    <q-icon v-if="step.status === 'completed'" name="check" size="16px" />
-                    <q-icon v-else-if="step.status === 'active'" name="schedule" size="15px" />
-                  </div>
-
-                  <div
-                    v-if="index !== trackingSteps.length - 1"
-                    class="tracking-line"
-                    :class="{
-                      'line-completed':
-                        step.status === 'completed' || step.status === 'active'
-                    }"
-                  />
-                </div>
-
-                <div class="tracking-content">
-                  <div class="tracking-title">
-                    {{ step.title }}
-                  </div>
-                  <div class="tracking-subtitle">
-                    {{ step.subtitle }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </q-card>
-
-          <q-card flat class="section-card q-mb-lg">
-            <div class="section-title">Payment Summary</div>
-
-            <div class="summary-row">
-              <span>Subtotal</span>
-              <span>₹{{ order?.subtotal ?? 0 }}</span>
-            </div>
-
-            <div class="summary-row">
-              <span>GST (18%)</span>
-              <span>₹{{ order?.tax_amount ?? order?.gst_amount ?? 0 }}</span>
-            </div>
-
-            <div class="summary-row">
-              <span>Shipping</span>
-              <span>
-                {{ Number(order?.shipping_amount ?? 0) === 0 ? 'Free' : `₹${order?.shipping_amount}` }}
-              </span>
-            </div>
-
-            <q-separator class="q-my-md" />
-
-            <div class="summary-row total-row">
-              <span>Total</span>
-              <span>₹{{ order?.grand_total ?? order?.total_amount ?? 0 }}</span>
-            </div>
-
-            <div class="payment-badge q-mt-md">
-              <q-icon name="verified" size="18px" class="q-mr-xs" />
-              {{ order?.payment_status === 'paid' ? 'Payment Successful' : (order?.payment_status || 'Payment Successful') }}
-            </div>
-          </q-card>
-
-          <div class="row q-col-gutter-sm">
-            <div class="col-12 col-sm-6">
-              <q-btn
-                unelevated
-                class="full-width action-btn secondary-btn"
-                label="Continue Shopping"
-                @click="$router.push('/')"
-              />
-            </div>
-
-            <div class="col-12 col-sm-6">
-              <q-btn
-                unelevated
-                class="full-width action-btn primary-btn"
-                label="View Orders"
-                @click="$router.push({ path: '/orders', query: { highlight: order?.id || orderId } })"
-              />
-            </div>
-          </div>
-        </div>
+      <div class="success-circle">
+        <q-icon name="check" />
       </div>
     </div>
+
+    <div class="title">
+      Order Confirmed
+    </div>
+
+    <div class="subtitle">
+      Your order has been placed successfully.
+    </div>
+
+    <q-btn
+      label="Continue Shopping"
+      class="custom-btn q-mt-lg"
+      unelevated
+      @click="router.push('/')"
+    />
+
   </q-page>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { getOrderById } from 'src/service/orderService.js'
-import { getUserId } from 'src/utils/CheckoutStorage'
+import { useRouter } from 'vue-router'
 
-defineOptions({
-  name: 'OrderConfirmationPage'
-})
-
-const route = useRoute()
-const orderId = route.params.orderId
-const userId = Number(getUserId())
-
-const order = ref(null)
-const loading = ref(true)
-
-const orderItems = computed(() => {
-  return order.value?.items || order.value?.order_items || []
-})
-
-const shippingAddress = computed(() => {
-  return order.value?.shipping_address || order.value?.address || {}
-})
-
-const trackingSteps = computed(() => {
-  const status = order.value?.order_status || 'pending'
-
-  return [
-    {
-      title: 'Order Placed',
-      subtitle: 'Your order has been placed successfully',
-      status: 'completed'
-    },
-    {
-      title: 'Confirmed',
-      subtitle: 'Your payment and order details are confirmed',
-      status: ['confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'].includes(status)
-        ? 'completed'
-        : status === 'pending' ? 'active' : 'pending'
-    },
-    {
-      title: 'Processing',
-      subtitle: 'Your items are being prepared for shipment',
-      status: ['processing', 'shipped', 'out_for_delivery', 'delivered'].includes(status)
-        ? 'completed'
-        : status === 'confirmed' ? 'active' : 'pending'
-    },
-    {
-      title: 'Shipped',
-      subtitle: 'Your package has been dispatched',
-      status: ['shipped', 'out_for_delivery', 'delivered'].includes(status)
-        ? 'completed'
-        : status === 'processing' ? 'active' : 'pending'
-    },
-    {
-      title: 'Out for Delivery',
-      subtitle: 'Courier partner will deliver your order',
-      status: ['out_for_delivery', 'delivered'].includes(status)
-        ? 'completed'
-        : status === 'shipped' ? 'active' : 'pending'
-    },
-    {
-      title: 'Delivered',
-      subtitle: 'Package delivered successfully',
-      status: status === 'delivered' ? 'completed' : 'pending'
-    }
-  ]
-})
-
-onMounted(async () => {
-  try {
-    const res = await getOrderById(orderId, userId)
-    order.value = res?.data || res
-    console.log('ORDER CONFIRMATION DATA =', order.value)
-  } catch (error) {
-    console.error('ORDER FETCH ERROR:', error)
-  } finally {
-    loading.value = false
-  }
-})
+const router = useRouter()
 </script>
 
 <style scoped>
 .order-page {
-  background: linear-gradient(180deg, #f4fbfb 0%, #ffffff 100%);
   min-height: 100vh;
-}
-
-.page-container {
-  max-width: 1320px;
-  margin: 0 auto;
-}
-
-.top-card,
-.section-card {
-  background: #ffffff;
-  border-radius: 22px;
-  box-shadow: 0 10px 30px rgba(15, 157, 154, 0.08);
-  border: 1px solid #e8f3f3;
-}
-
-.top-card {
-  padding: 28px;
-}
-
-.section-card {
-  padding: 24px;
-}
-
-.success-icon-wrapper {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: #e9f8f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.success-icon {
-  color: #18a46b;
-}
-
-.text-dark {
-  color: #17313b;
-}
-
-.order-id {
-  display: inline-block;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #e8f7f7;
-  color: #0f7f7c;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.delivery-label {
-  font-size: 14px;
-  color: #6c7a80;
-  margin-bottom: 4px;
-}
-
-.delivery-date {
-  font-size: 28px;
-  font-weight: 700;
-  color: #17313b;
-}
-
-.delivery-note {
-  font-size: 13px;
-}
-
-.section-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #17313b;
-  margin-bottom: 20px;
-}
-
-.product-box {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-}
-
-.product-image {
-  width: 140px;
-  min-width: 140px;
-  height: 160px;
-  border-radius: 18px;
+  height: 100vh;
+  padding: 24px 16px;
+  background:
+    radial-gradient(circle at center, rgba(15, 108, 115, 0.16), transparent 34%),
+    linear-gradient(135deg, #e6f7f6, #cfe3e3);
+  font-family: 'DM Sans', sans-serif;
   overflow: hidden;
-  background: #f5f5f5;
 }
 
-.product-info {
-  flex: 1;
-}
-
-.product-name {
-  font-size: 22px;
-  font-weight: 700;
-  color: #17313b;
-  line-height: 1.3;
-}
-
-.product-meta {
-  font-size: 15px;
-  color: #61737a;
-  margin-bottom: 4px;
-}
-
-.product-price {
-  font-size: 26px;
-  font-weight: 700;
-  color: #0f9d9a;
-}
-
-.info-block {
-  line-height: 1.8;
-}
-
-.info-name {
-  font-size: 17px;
-  font-weight: 700;
-  color: #17313b;
-}
-
-.info-line {
-  color: #61737a;
-  font-size: 15px;
-}
-
-.mini-info-label {
-  font-size: 13px;
-  color: #6d7b80;
-  margin-bottom: 6px;
-}
-
-.mini-info-value {
-  font-size: 17px;
-  font-weight: 700;
-  color: #17313b;
-}
-
-.tracking-list {
+.success-wrap {
   position: relative;
-}
-
-.tracking-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  position: relative;
-}
-
-.tracking-left {
-  width: 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.tracking-dot {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 150px;
+  height: 150px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.success-circle {
+  width: 105px;
+  height: 105px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #20c96b, #0ca35b);
   color: white;
+  font-size: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 20px 45px rgba(12, 163, 91, 0.35),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.12);
+  animation: boom 0.8s ease-out, breathe 2s ease-in-out infinite 1s;
   z-index: 2;
 }
 
-.tracking-dot.completed {
-  background: #18a46b;
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid rgba(32, 201, 107, 0.45);
+  animation: ripple 2s ease-out infinite;
 }
 
-.tracking-dot.active {
-  background: #1e88e5;
+.ring-one {
+  width: 115px;
+  height: 115px;
 }
 
-.tracking-dot.pending {
-  background: #d8e3e6;
+.ring-two {
+  width: 115px;
+  height: 115px;
+  animation-delay: 0.7s;
 }
 
-.tracking-line {
-  width: 3px;
-  height: 42px;
-  background: #d8e3e6;
-  margin-top: 4px;
-  border-radius: 999px;
+.title {
+  font-size: 54px;
+  font-weight: 900;
+  color: #082f35;
+  margin-top: 26px;
+  line-height: 1.1;
+  animation: fadeUp 0.7s ease-out 0.25s both;
 }
 
-.line-completed {
-  background: #0f9d9a;
-}
-
-.tracking-content {
-  padding-bottom: 22px;
-}
-
-.tracking-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #17313b;
-}
-
-.tracking-subtitle {
-  font-size: 14px;
-  color: #6b7a80;
-  margin-top: 4px;
+.subtitle {
+  font-size: 17px;
+  color: #5a7074;
+  margin-top: 12px;
+  padding: 0 12px;
   line-height: 1.5;
+  animation: fadeUp 0.7s ease-out 0.45s both;
 }
 
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #42555d;
-  font-size: 15px;
-  margin-bottom: 12px;
-}
-
-.total-row {
-  font-size: 20px;
-  font-weight: 700;
-  color: #17313b;
-}
-
-.payment-badge {
-  display: inline-flex;
-  align-items: center;
-  background: #e9f8f5;
-  color: #16875a;
-  padding: 10px 14px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.action-btn {
-  height: 50px;
-  border-radius: 14px;
-  font-weight: 700;
-  text-transform: none;
-  font-size: 15px;
-}
-
-.primary-btn {
-  background: #0f9d9a;
+.custom-btn {
+  background: #0f6c73;
   color: white;
+  padding: 10px 26px;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 10px;
+  box-shadow: 0 10px 22px rgba(15, 108, 115, 0.28);
+  animation: fadeUp 0.7s ease-out 0.65s both;
+  transition: 0.25s ease;
 }
 
-.secondary-btn {
-  background: #eef8f8;
-  color: #0f7f7c;
+.custom-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  background: #168f96;
+  box-shadow: 0 14px 30px rgba(15, 108, 115, 0.38);
+}
+
+@keyframes boom {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.18);
+  }
+  75% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.08);
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 768px) {
-  .top-card,
-  .section-card {
-    padding: 18px;
+  .success-wrap {
+    width: 135px;
+    height: 135px;
   }
 
-  .product-box {
-    flex-direction: column;
+  .success-circle {
+    width: 95px;
+    height: 95px;
+    font-size: 70px;
   }
 
-  .product-image {
-    width: 100%;
-    min-width: 100%;
-    height: 240px;
+  .ring-one,
+  .ring-two {
+    width: 105px;
+    height: 105px;
   }
 
-  .delivery-date {
-    font-size: 22px;
+  .title {
+    font-size: 44px;
+    margin-top: 22px;
   }
 
-  .product-name {
-    font-size: 20px;
+  .subtitle {
+    font-size: 16px;
   }
+}
+
+@media (max-width: 480px) {
+  .order-page {
+    padding: 20px 14px;
+  }
+
+  .success-wrap {
+    width: 120px;
+    height: 120px;
+  }
+
+  .success-circle {
+    width: 84px;
+    height: 84px;
+    font-size: 62px;
+  }
+
+  .ring-one,
+  .ring-two {
+    width: 92px;
+    height: 92px;
+  }
+
+  .title {
+    font-size: 34px;
+    margin-top: 18px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    max-width: 280px;
+  }
+
+  .custom-btn {
+    padding: 9px 22px;
+    font-size: 13px;
+    border-radius: 9px;
+  }
+}
+
+@media (max-width: 360px) {
+  .title {
+    font-size: 30px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .custom-btn {
+    padding: 8px 18px;
+    font-size: 12px;
+  }
+}
+</style>
+
+<style>
+html,
+body,
+#q-app {
+  height: 100%;
+  overflow: hidden;
+  background: #e6f7f6;
 }
 </style>

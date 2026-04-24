@@ -261,14 +261,10 @@ import { api } from 'boot/axios'
 import { addToCart } from 'src/stores/shop'
 import sizeChartFallback from 'src/assets/size_chart/size-chart.png'
 import measureFallback from 'src/assets/size_chart/measure.png'
-//import ProductCustomization from 'components/ProductCustomization.vue'
 
 const route = useRoute()
 const router = useRouter()
 
-// ----------------------
-// STATE
-// ----------------------
 const loading = ref(false)
 const product = ref(null)
 
@@ -294,22 +290,27 @@ const pincodeError = ref('')
 const isChecking = ref(false)
 
 const cartBtnRef = ref(null)
-const flyingImgRef = ref(null)
 const flyingVisible = ref(false)
 const flyingActive = ref(false)
 const flyingStyle = ref({})
 
-// ----------------------
-// FETCH PRODUCT DYNAMICALLY
-// ----------------------
 const fetchProduct = async () => {
   try {
     loading.value = true
     const productId = Number(route.params.id)
 
-    // change endpoint if your backend route is different
     const response = await api.get(`/products/${productId}`)
-    product.value = response.data
+    const data = response.data?.product || response.data?.data || response.data
+
+    product.value = {
+      ...data,
+      id: data.id || productId,
+      title: data.title || data.name || 'Product',
+      name: data.name || data.title || 'Product',
+      variants: data.variants || data.product_variants || []
+    }
+
+    console.log('PRODUCT DETAILS:', product.value)
   } catch (error) {
     console.error('PRODUCT FETCH ERROR:', error)
     product.value = null
@@ -325,9 +326,6 @@ watch(() => route.params.id, async () => {
   await fetchProduct()
 })
 
-// ----------------------
-// HELPERS
-// ----------------------
 const resetSelections = () => {
   selectedImage.value = ''
   displayImages.value = []
@@ -342,101 +340,115 @@ const resetSelections = () => {
 
 const onCustomizationUpdated = (payload) => {
   customizationData.value = payload
-  console.log('Customization:', payload)
 }
 
 const openImageDialog = () => {
   imageDialog.value = true
 }
 
-// ----------------------
-// DYNAMIC PRODUCT FIELD NORMALIZATION
-// ----------------------
 const normalizedImages = computed(() => {
   if (!product.value) return []
 
-  if (Array.isArray(product.value.images) && product.value.images.length) {
-    return product.value.images.map((img) => {
-      if (typeof img === 'string') return img
-      return img.image_url || img.url || img.src || ''
-    }).filter(Boolean)
+  const imgs = []
+
+  if (Array.isArray(product.value.images)) {
+    product.value.images.forEach(img => {
+      if (typeof img === 'string') imgs.push(img)
+      else imgs.push(img.image_url || img.url || img.src || img.file_path || '')
+    })
   }
 
-  if (product.value.image_url) return [product.value.image_url]
-  if (product.value.image) return [product.value.image]
+  if (Array.isArray(product.value.product_images)) {
+    product.value.product_images.forEach(img => {
+      if (typeof img === 'string') imgs.push(img)
+      else imgs.push(img.image_url || img.url || img.src || img.file_path || '')
+    })
+  }
 
-  return []
+  if (product.value.image_url) imgs.push(product.value.image_url)
+  if (product.value.product_image) imgs.push(product.value.product_image)
+  if (product.value.image) imgs.push(product.value.image)
+
+  return imgs.filter(Boolean)
 })
 
 const colorOptions = computed(() => {
-  if (!product.value) return []
+  if (!product.value?.variants?.length) return []
 
-  if (Array.isArray(product.value.colors) && product.value.colors.length) {
-    return product.value.colors
-  }
+  const unique = new Map()
 
-  // fallback: build colors from variants if backend does not send colors separately
-  if (Array.isArray(product.value.variants)) {
-    const unique = new Map()
+  product.value.variants.forEach((variant) => {
+    const colorName =
+      variant.color ||
+      variant.color_name ||
+      extractColorFromVariantName(variant.variant_name)
 
-    product.value.variants.forEach((variant) => {
-      const colorName =
-        variant.color ||
-        variant.color_name ||
-        extractColorFromVariantName(variant.variant_name)
+    if (colorName && !unique.has(colorName.toLowerCase())) {
+      unique.set(colorName.toLowerCase(), {
+        name: colorName,
+        hex: variant.color_code || '#cccccc',
+        variant_id: variant.id || variant.variant_id,
+        images: variant.images || []
+      })
+    }
+  })
 
-      if (colorName && !unique.has(colorName.toLowerCase())) {
-        unique.set(colorName.toLowerCase(), {
-          name: colorName,
-          hex: variant.color_code || '#cccccc',
-          variant_id: variant.variant_id || variant.id,
-          images: variant.images || []
-        })
-      }
-    })
-
-    return Array.from(unique.values())
-  }
-
-  return []
+  return Array.from(unique.values())
 })
 
 const sizes = computed(() => {
-  if (!product.value) return []
+  if (!product.value?.variants?.length) return []
 
-  if (Array.isArray(product.value.sizes) && product.value.sizes.length) {
-    return product.value.sizes
-  }
+  const extracted = product.value.variants
+    .map(v => v.size || extractSizeFromVariantName(v.variant_name))
+    .filter(Boolean)
 
-  if (Array.isArray(product.value.variants) && product.value.variants.length) {
-    const extractedSizes = product.value.variants
-      .map((variant) => variant.size || extractSizeFromVariantName(variant.variant_name))
-      .filter(Boolean)
+  return [...new Set(extracted)]
+})
 
-    return [...new Set(extractedSizes)]
-  }
+const selectedVariant = computed(() => {
+  if (!product.value?.variants?.length) return null
 
-  return []
+  return product.value.variants.find((variant) => {
+    const name = String(variant.variant_name || '').toLowerCase()
+
+    const sizeMatch =
+      !selectedSize.value ||
+      name.includes(String(selectedSize.value).toLowerCase())
+
+    const colorMatch =
+      !selectedColor.value ||
+      name.includes(String(selectedColor.value).toLowerCase())
+
+    return sizeMatch && colorMatch
+  }) || product.value.variants[0]
 })
 
 const currentPrice = computed(() => {
-  if (!product.value) return 0
-  return product.value.price || product.value.sale_price || product.value.final_price || 0
+  return Number(
+    selectedVariant.value?.price ||
+    product.value?.price ||
+    product.value?.sale_price ||
+    product.value?.final_price ||
+    0
+  )
 })
 
 const oldPrice = computed(() => {
-  if (!product.value) return null
-  return product.value.oldPrice || product.value.old_price || product.value.mrp || product.value.original_price || null
+  return product.value?.oldPrice ||
+    product.value?.old_price ||
+    product.value?.mrp ||
+    product.value?.original_price ||
+    null
 })
 
 const displayRating = computed(() => {
-  if (!product.value) return '0.0'
-  return Number(product.value.rating || product.value.avg_rating || 0).toFixed(1)
+  return Number(product.value?.rating || product.value?.avg_rating || 0).toFixed(1)
 })
 
 const ratingStars = computed(() => {
   const rating = Math.round(Number(product.value?.rating || product.value?.avg_rating || 0))
-  return '★'.repeat(Math.max(0, Math.min(5, rating))) + '☆'.repeat(Math.max(0, 5 - Math.round(rating)))
+  return '★'.repeat(Math.max(0, Math.min(5, rating))) + '☆'.repeat(Math.max(0, 5 - rating))
 })
 
 const discountPercent = computed(() => {
@@ -445,28 +457,17 @@ const discountPercent = computed(() => {
 })
 
 const productTag = computed(() => {
-  return (
-    product.value?.tag ||
+  return product.value?.tag ||
     product.value?.category_name ||
     product.value?.collection_name ||
     'Premium Collection'
-  )
 })
 
-const sizeChartImage = computed(() => {
-  return product.value?.size_chart_image || sizeChartFallback
-})
-
-const measureImage = computed(() => {
-  return product.value?.measure_image || measureFallback
-})
+const sizeChartImage = computed(() => product.value?.size_chart_image || sizeChartFallback)
+const measureImage = computed(() => product.value?.measure_image || measureFallback)
 
 const accordionSections = computed(() => {
   if (!product.value) return []
-
-  if (Array.isArray(product.value.accordion_sections) && product.value.accordion_sections.length) {
-    return product.value.accordion_sections
-  }
 
   return [
     {
@@ -484,37 +485,27 @@ const accordionSections = computed(() => {
       description: product.value.returnDescription || product.value.return_description || '',
       points: product.value.returnPoints || product.value.return_points || []
     }
-  ].filter(section => section.description || (section.points && section.points.length))
+  ].filter(section => section.description || section.points?.length)
 })
 
 const deliveryFeatures = computed(() => {
-  if (Array.isArray(product.value?.delivery_features) && product.value.delivery_features.length) {
-    return product.value.delivery_features
-  }
-
-  return [
-    { icon: 'bi bi-truck-flatbed', title: '1–3 Day<br />Express Shipping' },
-    { icon: 'bi bi-box-seam', title: 'Easy Exchange<br />& Returns' },
-    { icon: 'bi bi-truck', title: 'Cash on Delivery<br />Available' }
-  ]
+  return product.value?.delivery_features?.length
+    ? product.value.delivery_features
+    : [
+        { icon: 'bi bi-truck-flatbed', title: '1–3 Day<br />Express Shipping' },
+        { icon: 'bi bi-box-seam', title: 'Easy Exchange<br />& Returns' },
+        { icon: 'bi bi-truck', title: 'Cash on Delivery<br />Available' }
+      ]
 })
 
-// ----------------------
-// WATCH PRODUCT
-// ----------------------
 watch(product, (val) => {
   if (!val) return
 
-  displayImages.value = [...normalizedImages.value]
-  selectedImage.value = normalizedImages.value[0] || ''
+  displayImages.value = normalizedImages.value.length ? [...normalizedImages.value] : ['/favicon.ico']
+  selectedImage.value = displayImages.value[0]
 
   if (colorOptions.value.length) {
-    selectedColor.value = colorOptions.value[0]?.name || ''
-    const firstColorImages = colorOptions.value[0]?.images || []
-    if (firstColorImages.length) {
-      displayImages.value = [...firstColorImages]
-      selectedImage.value = firstColorImages[0]
-    }
+    selectedColor.value = colorOptions.value[0].name
   }
 
   if (sizes.value.length === 1) {
@@ -522,31 +513,22 @@ watch(product, (val) => {
   }
 }, { immediate: true })
 
-// ----------------------
-// COLOR CHANGE
-// ----------------------
 const changeColor = (colorName) => {
   selectedColor.value = colorName
 
   const colorObj = colorOptions.value.find(
-    c => String(c.name || '').toLowerCase().trim() === String(colorName || '').toLowerCase().trim()
+    c => String(c.name).toLowerCase().trim() === String(colorName).toLowerCase().trim()
   )
 
   if (colorObj?.images?.length) {
     displayImages.value = [...colorObj.images]
     selectedImage.value = colorObj.images[0]
-    return
-  }
-
-  if (normalizedImages.value.length) {
-    displayImages.value = [...normalizedImages.value]
-    selectedImage.value = normalizedImages.value[0]
+  } else {
+    displayImages.value = normalizedImages.value.length ? [...normalizedImages.value] : ['/favicon.ico']
+    selectedImage.value = displayImages.value[0]
   }
 }
 
-// ----------------------
-// QTY
-// ----------------------
 const increaseQty = () => {
   quantity.value++
 }
@@ -555,14 +537,8 @@ const decreaseQty = () => {
   if (quantity.value > 1) quantity.value--
 }
 
-// ----------------------
-// PINCODE - NOW DYNAMIC BACKEND CHECK
-// ----------------------
 const onPincodeInput = () => {
-  if (pincode.value.length > 6) {
-    pincode.value = pincode.value.slice(0, 6)
-  }
-
+  if (pincode.value.length > 6) pincode.value = pincode.value.slice(0, 6)
   deliveryStatus.value = null
   pincodeError.value = ''
 }
@@ -580,7 +556,6 @@ const checkPincode = async () => {
   isChecking.value = true
 
   try {
-    // change endpoint if your backend route is different
     const response = await api.get('/delivery/check-pincode', {
       params: {
         pincode: pin,
@@ -606,9 +581,6 @@ const checkPincode = async () => {
   }
 }
 
-// ----------------------
-// FLYING CART ANIMATION
-// ----------------------
 const triggerFlyAnimation = async () => {
   if (!cartBtnRef.value) return
 
@@ -621,7 +593,6 @@ const triggerFlyAnimation = async () => {
 
   const startX = btnRect.left + btnRect.width / 2 - 25
   const startY = btnRect.top + btnRect.height / 2 - 25
-
   const targetX = targetRect.left + targetRect.width / 2 - 25
   const targetY = targetRect.top + targetRect.height / 2 - 25
 
@@ -653,9 +624,6 @@ const triggerFlyAnimation = async () => {
   }, 50)
 }
 
-// ----------------------
-// KEEP SAME ADD TO CART LOGIC STYLE
-// ----------------------
 const handleAddToCart = async () => {
   try {
     if (!product.value) return
@@ -667,39 +635,13 @@ const handleAddToCart = async () => {
 
     sizeError.value = false
 
-    const selectedColorObj = colorOptions.value.find(
-      c => String(c.name || '').toLowerCase().trim() === String(selectedColor.value || '').toLowerCase().trim()
-    )
-
-    let variantId = selectedColorObj?.variant_id
-
-    if (!variantId && product.value?.variants?.length) {
-      const matchedVariant = product.value.variants.find((variant) => {
-        const variantName = String(variant.variant_name || '').toLowerCase()
-        return (
-          (!selectedSize.value || variantName.includes(String(selectedSize.value).toLowerCase())) &&
-          (!selectedColor.value || variantName.includes(String(selectedColor.value).toLowerCase()))
-        )
-      })
-
-      variantId = matchedVariant?.variant_id || matchedVariant?.id
-    }
-
-    if (!variantId && product.value?.variants?.length && selectedSize.value) {
-      const matchedBySize = product.value.variants.find((variant) => {
-        const variantName = String(variant.variant_name || '').toLowerCase()
-        return variantName.includes(String(selectedSize.value).toLowerCase())
-      })
-
-      variantId = matchedBySize?.variant_id || matchedBySize?.id
-    }
-
-    if (!variantId && product.value?.default_variant_id) {
-      variantId = product.value.default_variant_id
-    }
+    const variantId =
+      selectedVariant.value?.id ||
+      selectedVariant.value?.variant_id ||
+      product.value?.default_variant_id
 
     if (!variantId) {
-      console.error('variant_id missing for selected product', {
+      console.error('variant_id missing', {
         product: product.value,
         selectedColor: selectedColor.value,
         selectedSize: selectedSize.value
@@ -724,29 +666,22 @@ const handleBuyNow = async () => {
   router.push('/cart')
 }
 
-// ----------------------
-// UTILS
-// ----------------------
 function extractSizeFromVariantName(name = '') {
   const text = String(name).toUpperCase()
-  const sizeList = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL']
+  const sizeList = ['3XL', '2XL', 'XL', 'XS', 'S', 'M', 'L', '4XL', '5XL', '2XS', '3XS']
   return sizeList.find(size => text.includes(size)) || ''
 }
 
 function extractColorFromVariantName(name = '') {
   const knownColors = [
-    'Black', 'White', 'Blue', 'Navy', 'Green', 'Olive', 'Grey', 'Gray',
-    'Maroon', 'Wine', 'Red', 'Brown', 'Beige', 'Pink', 'Purple', 'Teal',
-    'Mint', 'Sky Blue', 'Royal Blue'
+    'Soft Blue+Grey', 'Navy Blue', 'Dark Grey', 'Mint Green',
+    'Mustard Yellow', 'Dark Green', 'Dust Pink',
+    'Black', 'White', 'Blue', 'Navy', 'Green', 'Grey',
+    'Maroon', 'Brown', 'Tan', 'Yellow'
   ]
 
   const lowerName = String(name).toLowerCase()
-
-  const found = knownColors.find(color =>
-    lowerName.includes(color.toLowerCase())
-  )
-
-  return found || ''
+  return knownColors.find(color => lowerName.includes(color.toLowerCase())) || ''
 }
 </script>
 

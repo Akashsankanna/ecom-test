@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
 from app.schemas.payment import (
     RazorpayCreateOrderRequest,
     RazorpayVerifyPaymentRequest
@@ -21,10 +24,15 @@ def create_razorpay_order(data: RazorpayCreateOrderRequest):
 
 
 @router.post("/verify-payment")
-def verify_razorpay_payment(data: RazorpayVerifyPaymentRequest):
+def verify_razorpay_payment(
+    data: RazorpayVerifyPaymentRequest,
+    db: Session = Depends(get_db)
+):
     return verify_razorpay_payment_service(
+        db=db,
         razorpay_order_id=data.razorpay_order_id,
         razorpay_payment_id=data.razorpay_payment_id,
         razorpay_signature=data.razorpay_signature,
-                
+        user_id=data.user_id,
+        address_id=data.address_id
     )

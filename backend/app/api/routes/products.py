@@ -16,7 +16,24 @@ def get_products(db: Session = Depends(get_db)):
                 p.name,
                 p.description,
                 COALESCE(pi.image_url, '') AS image_url,
-                MIN(pv.price) AS price
+                MIN(pv.price) AS price,
+
+                CASE
+                    WHEN LOWER(p.name) LIKE '%women%' THEN 'women'
+                    WHEN LOWER(p.name) LIKE '%men%' THEN 'men'
+                    ELSE 'unisex'
+                END AS gender,
+
+                CASE
+                    WHEN LOWER(p.name) LIKE '%apron%' THEN 'Aprons'
+                    ELSE 'Scrubs'
+                END AS category_name,
+
+                CASE
+                    WHEN LOWER(p.name) LIKE '%ecoflex%' THEN 'Ecoflex'
+                    ELSE 'Classic'
+                END AS fabric
+
             FROM product p
             LEFT JOIN product_image pi
                 ON pi.product_id = p.id
@@ -36,11 +53,13 @@ def get_products(db: Session = Depends(get_db)):
             "name": row.name,
             "description": row.description,
             "image_url": row.image_url,
-            "price": float(row.price) if row.price is not None else 0
+            "price": float(row.price) if row.price is not None else 0,
+            "gender": row.gender,
+            "category_name": row.category_name,
+            "fabric": row.fabric
         }
         for row in rows
     ]
-
 
 @router.get("/{product_id}")
 def get_product_details(product_id: int, db: Session = Depends(get_db)):

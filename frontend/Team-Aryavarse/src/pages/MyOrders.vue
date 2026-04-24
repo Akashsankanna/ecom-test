@@ -131,11 +131,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { fetchOrdersByUser } from 'src/service/orderService'
+import { getUserId } from 'src/utils/CheckoutStorage'
 
+const router = useRouter()
 
 const activeTab = ref('all')
+const orders = ref([])
+const loading = ref(false)
 
 const statusTabs = [
   { label: 'All', value: 'all' },
@@ -145,16 +150,76 @@ const statusTabs = [
   { label: 'Cancelled', value: 'Cancelled' },
 ]
 
-// Keep empty for now.
-// Later replace this with backend API response.
-const orders = ref([])
+onMounted(() => {
+  loadOrders()
+})
+
+async function loadOrders() {
+  try {
+    const userId = Number(getUserId())
+
+    if (!userId) {
+      router.push('/login')
+      return
+    }
+
+    loading.value = true
+
+    const res = await fetchOrdersByUser(userId)
+
+    console.log('ORDERS RESPONSE:', res)
+
+    const rawOrders = Array.isArray(res)
+      ? res
+      : res?.orders || res?.data || res?.items || []
+
+    orders.value = rawOrders.map(order => ({
+      id: order.id,
+      date: order.created_at || order.date,
+      status: normalizeStatus(order.status || order.delivery_status),
+      total: Number(order.final_amount || order.total_amount || order.gross_amount || 0),
+      items: (order.items || order.order_items || []).map(item => ({
+        id: item.id,
+        name: item.product_name || item.name || item.product?.name || 'Product',
+        qty: Number(item.quantity || item.qty || 1),
+        price: Number(item.price || 0),
+        size: item.variant_name || item.size || item.variant?.variant_name || '',
+        color: item.color || '',
+        image:
+          item.image ||
+          item.image_url ||
+          item.product_image ||
+          item.product?.image ||
+          'https://via.placeholder.com/80x80?text=IMG'
+      }))
+    }))
+
+  } catch (err) {
+    console.error('LOAD ORDERS ERROR:', err)
+    orders.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredOrders = computed(() => {
   if (activeTab.value === 'all') return orders.value
   return orders.value.filter(o => o.status === activeTab.value)
 })
 
+function normalizeStatus(status) {
+  const s = String(status || '').toLowerCase()
+
+  if (s.includes('deliver')) return 'Delivered'
+  if (s.includes('ship')) return 'Shipped'
+  if (s.includes('cancel')) return 'Cancelled'
+
+  return 'Processing'
+}
+
 function formatDate(dateStr) {
+  if (!dateStr) return '-'
+
   return new Date(dateStr).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
@@ -179,14 +244,12 @@ function handleImgError(e) {
   e.target.src = 'https://via.placeholder.com/80x80?text=IMG'
 }
 
-const router = useRouter()
 function viewOrder(order) {
-  router.push(`/orders/${order.id}`)
+  router.push(`/order-confirmation/${order.id}`)
 }
 
 function trackOrder(order) {
-  console.log('Track order:', order.id)
-  // router.push(`/orders/${order.id}/track`)
+  router.push(`/order-confirmation/${order.id}`)
 }
 
 function buyAgain(order) {
