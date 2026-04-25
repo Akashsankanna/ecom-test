@@ -1,0 +1,80 @@
+:root {
+  --admin-peacock: #2563eb;
+  --admin-chart-stroke: #1d4ed8;
+}
+
+body {
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 35%, #eef2ff 100%);
+  color: #0f172a;
+}
+
+.admin-layout .q-page-container {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+}
+
+.admin-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.admin-page .page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-card {
+  border-radius: 14px;
+  background: #ffffff;
+  border-color: #dbe3f0;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.14);
+}
+
+.admin-page .mini-chart .bar,
+.admin-page .bar-item {
+  background: var(--admin-peacock) !important;
+}
+
+.admin-page .line-dot {
+  background: var(--admin-chart-stroke) !important;
+}
+
+.admin-page .line-chart {
+  border-color: var(--admin-chart-stroke);
+}
+
+.admin-page .admin-table .q-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.admin-page .text-h6,
+.admin-page .text-h5,
+.admin-page .text-subtitle1,
+.admin-page .text-subtitle2 {
+  color: #111827;
+}
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .admin-page .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.q-btn.bg-dark {
+  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%) !important;
+}
