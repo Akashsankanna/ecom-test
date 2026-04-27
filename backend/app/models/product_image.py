@@ -12,9 +12,9 @@ class ProductImage(Base):
     variant_id = Column(Integer, ForeignKey("product_variant.id"), nullable=True)
 
     image_url = Column(Text, nullable=False)
-    image_name = Column(String(255))
+    image_name = Column(String(255), nullable=True)
 
     is_primary = Column(Boolean, default=False)
 
     created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP)
+    updated_at = Column(TIMESTAMP, nullable=True)
