@@ -3,7 +3,10 @@ load_dotenv()
 
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+Base = declarative_base()
+
+
 
 # Read from .env
 DB_HOST = os.getenv("DB_HOST", "localhost")
