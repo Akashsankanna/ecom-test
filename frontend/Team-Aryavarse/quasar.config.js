@@ -37,9 +37,9 @@ export default defineConfig((/* ctx */) => {
         browser: 'baseline-widely-available',
         node: 'node22',
       },
-      
+
       vueRouterMode: 'hash', // available values: 'hash', 'history'
- 
+
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -60,7 +60,7 @@ export default defineConfig((/* ctx */) => {
 
       vitePlugins: [
         [
-          
+
           { server: false },
         ],
       ],

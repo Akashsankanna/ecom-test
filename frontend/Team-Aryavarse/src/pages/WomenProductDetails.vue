@@ -7,7 +7,6 @@
       <div class="left">
         <div class="thumbs">
           <img
-            
             v-for="img in displayImages"
             :key="img"
             :src="img"
@@ -16,11 +15,10 @@
           />
         </div>
 
-              <div class="main-image-box" @click="openImageDialog">
-                  <img :src="selectedImage" class="main-image" />
-
-              </div>
+        <div class="main-image-box" @click="openImageDialog">
+          <img :src="selectedImage" class="main-image" />
         </div>
+      </div>
     </div>
 
       <!------------right--------------->
@@ -47,12 +45,6 @@
           </span>
         </div>
 
-        <!----<div class="info-box">
-          <p><strong>Fabric:</strong> {{ product.fabric }}</p>
-          <p><strong>Color:</strong> {{ product.color }}</p>
-          <p><strong>Category:</strong> {{ product.category }}</p>
-        </div>-->
-
            <!-- COLOUR -->
             <div class="variant-section">
                 <p class="variant-label">Colour: <strong>{{ selectedColor }}</strong></p>
@@ -67,7 +59,7 @@
                   > </button>
                   </div>
               </div>
-        
+
                   <!-- Size -->
                   <div class="variant-section">
                     <div class="section-head">
@@ -84,21 +76,17 @@
                         v-for="s in sizes" :key="s"
                         class="size-btn"
                         :class="{ active: selectedSize === s }"
-                        @click="selectedSize = s;
-                        sizeError = false;"
+                        @click="selectedSize = s; sizeError = false;"
                       >
                       {{ s }}
                       </button>
                     </div>
-                      
-                      <p v-if="sizeError" class="size-error">
-                         Please select size
-                      </p>
-                      
-                    
+
+                    <p v-if="sizeError" class="size-error">
+                      Please select size
+                    </p>
                   </div>
 
-                          <!-- ✅ CUSTOMIZATION -->
       <ProductCustomization
         :product-id="product?.id"
         @customization-updated="onCustomizationUpdated"
@@ -114,7 +102,6 @@
             <button class="detail-qty-btn" @click="increaseQty">+</button>
           </div>
 
-          <!-- ✅ ref added for flying animation origin -->
           <button class="cart-btn" ref="cartBtnRef" @click="handleAddToCart">
             Add to Cart
           </button>
@@ -160,7 +147,6 @@
 
             <div class="pincode-checker">
             <div class="input-btn-group">
-              <!-- ✅ maxlength 6, @keyup.enter support -->
               <q-input
                 v-model="pincode"
                 type="text"
@@ -181,28 +167,28 @@
               />
             </div>
 
-            <!-- ✅ 6-digit validation message -->
             <div v-if="pincode.length > 0 && pincode.length < 6" class="error-msg">
               Pincode must be 6 digits
             </div>
 
-                      <div v-if="pincodeError" class="error-msg">
-                        {{ pincodeError }}
-                      </div>
+            <div v-if="pincodeError" class="error-msg">
+              {{ pincodeError }}
+            </div>
 
-                        <div v-if="deliveryStatus" class="delivery-messages">
-                           <div class="delivery-date">
-                             <i class="bi bi-truck"></i>
-                              {{ deliveryStatus.deliveryDate }}
-                            </div>
+            <div v-if="deliveryStatus" class="delivery-messages">
+              <div class="delivery-date">
+                <i class="bi bi-truck"></i>
+                {{ deliveryStatus.deliveryDate }}
+              </div>
 
-                            <div class="delivery-cod" v-if="deliveryStatus.cod">
-                              <i class="bi bi-cash-stack"></i>
-                                {{ deliveryStatus.cod }}
-                            </div>
-                         </div>
-                    </div>
-                </div>
+              <div class="delivery-cod" v-if="deliveryStatus.cod">
+                <i class="bi bi-cash-stack"></i>
+                {{ deliveryStatus.cod }}
+              </div>
+            </div>
+          </div>
+        </div>
+
 <!----details---->
 <div class="product-info-right">
 
@@ -224,7 +210,6 @@
     </div>
   </div>
 
-
   <!-- Fabric & Care -->
   <div class="section accordion">
     <div class="accordion-header" @click="activeAccordion = activeAccordion === 1 ? null : 1">
@@ -242,7 +227,6 @@
       </ul>
     </div>
   </div>
-
 
   <!-- Return & Exchange -->
   <div class="section accordion">
@@ -269,29 +253,25 @@
 
       <!-- IMAGE DIALOG -->
       <div v-if="imageDialog" class="image-popup" @click.self="imageDialog = false">
-        <!-- CLOSE BUTTON -->
         <button class="full-close-btn" @click="imageDialog = false">✕</button>
-        <!-- IMAGE -->
         <img :src="selectedImage" class="popup-image" />
       </div>
-      
+
 <!-- SIZE CHART POPUP -->
     <q-dialog v-model="sizeChartDialog">
       <div class="size-chart-popup">
-        <!-- HEADER -->
         <div class="size-chart-header">
           <h3>Size Chart</h3>
           <button class="size-chart-close" @click="sizeChartDialog = false">✕</button>
         </div>
 
-        <!-- TABS -->
         <div class="size-chart-tabs">
           <button
             class="tab"
             :class="{ active: activeTab === 'size' }"
             @click="activeTab = 'size'"
           >
-            Size 
+            Size
           </button>
 
           <button
@@ -303,7 +283,6 @@
           </button>
         </div>
 
-        <!-- CONTENT -->
         <div class="size-chart-content">
           <img
             v-if="activeTab === 'size'"
@@ -320,7 +299,6 @@
       </div>
     </q-dialog>
 
-
   </div>
 </template>
 
@@ -331,7 +309,7 @@ import { womenProducts } from 'src/data/womenProducts'
 import { addToCart } from 'src/stores/shop'
 import sizeChartImg from 'src/assets/size_chart/size-chart.png'
 import measureImg from 'src/assets/size_chart/measure.png'
-import ProductCustomization from 'components/ProductCustomization.vue'
+//import ProductCustomization from 'components/ProductCustomization.vue'
 
 //customization
 const customizationData = ref(null)
@@ -352,10 +330,9 @@ const product = computed(() =>
   womenProducts.find(p => p.id === Number(route.params.id))
 )
 
-
 // IMAGES
 const selectedImage = ref('')
-const displayImages = ref([]) // current visible images
+const displayImages = ref([])
 const imageDialog   = ref(false)
 
 watch(product, (val) => {
@@ -385,7 +362,6 @@ const nextImage = () => {
     imgs[(imgs.indexOf(selectedImage.value) + 1) % imgs.length]
 }
 
-
 // COLORS
 const colorOptions = computed(() => product.value?.colors || [])
 const selectedColor = ref('')
@@ -399,14 +375,15 @@ watch(product, (val) => {
 const changeColor = (colorName) => {
   selectedColor.value = colorName
 
-  const colorObj = product.value?.colors?.find(c => c.name === colorName)
+  const colorObj = product.value?.colors?.find(
+    c => String(c.name || '').toLowerCase().trim() === String(colorName || '').toLowerCase().trim()
+  )
 
   if (colorObj?.images?.length) {
-    displayImages.value = [...colorObj.images] // no computed mutate bug
+    displayImages.value = [...colorObj.images]
     selectedImage.value = colorObj.images[0]
   }
 }
-
 
 // PRICE
 const oldPrice = computed(() => product.value?.oldPrice)
@@ -420,10 +397,7 @@ const discountPercent = computed(() => {
 // SIZE
 const sizes = ['XS','S','M','L','XL','2XL','3XL']
 const selectedSize = ref('')
-
-//size chya khali error 
 const sizeError = ref(false)
-
 
 // Qty
 const quantity = ref(1)
@@ -436,20 +410,16 @@ const decreaseQty = () => {
   if (quantity.value > 1) quantity.value--
 }
 
-
 // SIZE CHART POPUP
 const sizeChartDialog = ref(false)
 const activeTab = ref('size')
 
-
-// ✅ PINCODE - 6 digit limit, enter key, auto clear
+// PINCODE
 const pincode = ref('')
 const deliveryStatus = ref(null)
 const pincodeError = ref('')
 const isChecking = ref(false)
 
-
-// ✅ Clear previous result when user types new pincode
 const onPincodeInput = () => {
   if (pincode.value.length > 6) {
     pincode.value = pincode.value.slice(0, 6)
@@ -458,7 +428,6 @@ const onPincodeInput = () => {
   deliveryStatus.value = null
   pincodeError.value = ''
 }
-
 
 const solapurPincodes = [
   '413001','413002','413003','413004','413005',
@@ -470,7 +439,6 @@ const solapurPincodes = [
   '413401','413402','413403','413406','413409',
   '413410','413411'
 ]
-
 
 const checkPincode = () => {
   const pin = String(pincode.value).trim()
@@ -484,8 +452,6 @@ const checkPincode = () => {
   pincodeError.value = ''
   isChecking.value = true
 
-
-  // Dynamic Delivery Date
   const today = new Date()
   const startDate = today.getDate() + 2
   const endDate = today.getDate() + 3
@@ -504,34 +470,28 @@ const checkPincode = () => {
   }, 1200)
 }
 
-
-// ✅ FLYING CART ANIMATION
+// FLYING CART ANIMATION
 const cartBtnRef = ref(null)
-
 const flyingImgRef = ref(null)
 const flyingVisible = ref(false)
 const flyingActive = ref(false)
 const flyingStyle = ref({})
 
-
 const triggerFlyAnimation = async () => {
   if (!cartBtnRef.value) return
 
   const btnRect = cartBtnRef.value.getBoundingClientRect()
-
   const cartIcon = document.querySelector('#cartIcon')
 
   const targetRect = cartIcon
     ? cartIcon.getBoundingClientRect()
     : { left: window.innerWidth - 40, top: 20, width: 0, height: 0 }
 
-
   const startX = btnRect.left + btnRect.width / 2 - 25
   const startY = btnRect.top + btnRect.height / 2 - 25
 
   const targetX = targetRect.left + targetRect.width / 2 - 25
   const targetY = targetRect.top + targetRect.height / 2 - 25
-
 
   flyingStyle.value = {
     left: startX + 'px',
@@ -562,39 +522,62 @@ const triggerFlyAnimation = async () => {
   }, 50)
 }
 
+// ONLY OLD BACKEND CONNECTION LOGIC
+const handleAddToCart = async () => {
+  try {
+    if (!product.value) return
 
-// Cart
-const handleAddToCart = () => {
-  if (!selectedSize.value) {
-    sizeError.value = true
-    return
+    if (!selectedSize.value) {
+      sizeError.value = true
+      return
+    }
+
+    sizeError.value = false
+
+    const selectedColorObj = product.value.colors?.find(
+      c => String(c.name || '').toLowerCase().trim() === String(selectedColor.value || '').toLowerCase().trim()
+    )
+
+    let variantId = selectedColorObj?.variant_id || product.value.variant_id
+
+    if (!variantId && product.value?.variants?.length) {
+      const matchedVariant = product.value.variants.find((variant) => {
+        const variantName = String(variant.variant_name || '').toLowerCase()
+        return (
+          variantName.includes(String(selectedSize.value).toLowerCase()) &&
+          variantName.includes(String(selectedColor.value).toLowerCase())
+        )
+      })
+
+      variantId = matchedVariant?.variant_id || matchedVariant?.id
+    }
+
+    if (!variantId) {
+      console.error('variant_id missing in womenProducts item:', {
+        product: product.value,
+        selectedColor: selectedColor.value,
+        selectedSize: selectedSize.value
+      })
+      return
+    }
+
+    await addToCart(Number(variantId), quantity.value)
+    await triggerFlyAnimation()
+  } catch (error) {
+    console.error('HANDLE ADD TO CART ERROR:', error)
   }
-
-  triggerFlyAnimation()
-
-  addToCart({
-    ...product.value,
-    size: selectedSize.value,
-    color: selectedColor.value,
-    image: selectedImage.value,
-    qty: quantity.value,
-    // ✅ ADD THIS
-    customization: customizationData.value
-  })
 }
 
-
-const handleBuyNow = () => {
+const handleBuyNow = async () => {
   if (!selectedSize.value) {
     sizeError.value = true
     return
   }
 
-  handleAddToCart()
+  await handleAddToCart()
   router.push('/cart')
 }
 </script>
-
 
 <style scoped lang="scss">
 @import 'src/css/women-product-details.scss';

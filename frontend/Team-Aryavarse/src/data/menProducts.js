@@ -1,11 +1,8 @@
 // ============================================================
-//  menProducts.js  –  Sarv images getImage() ne — no hardcoded paths!
+// menProducts.js – new file structure + backend variant_id added
 // ============================================================
 
 import { parallelImg, modelImg, collarBoyImg } from './imageHelper'
-
-//  ↑ Ha file tuzha menProducts.js jyat ahe tya folder madhe thev
-//    (src/data/menProducts.js asel tar import path adjust kar)
 
 export const menProducts = [
   {
@@ -40,7 +37,6 @@ export const menProducts = [
       "Items that have been used, washed, or had their tags removed cannot be returned.",
       "Orders placed during sale events are final and not eligible for return but can be exchanged."
     ],
-    // image + images dono same first color chya images
     image: parallelImg('brown_and_light_brown.png'),
     images: [
       parallelImg('brown_and_light_brown.png'),
@@ -48,14 +44,18 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "brown", hex: "#964B00",
+        name: "brown",
+        hex: "#964B00",
+        variant_id: 54,
         images: [
           parallelImg('brown_and_light_brown.png'),
           modelImg('brothers_suit.png'),
         ]
       },
       {
-        name: "green", hex: "#006400",
+        name: "green",
+        hex: "#006400",
+        variant_id: 52,
         images: [
           parallelImg('Dark_green.png'),
           modelImg('Dark_Green_full_sleeves.png'),
@@ -103,14 +103,18 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Green", hex: "#006400",
+        name: "Green",
+        hex: "#006400",
+        variant_id: 55,
         images: [
           parallelImg('Dark_green.png'),
           modelImg('Dark_Green_full_sleeves.png'),
         ]
       },
       {
-        name: "Navy Blue", hex: "#000080",
+        name: "Navy Blue",
+        hex: "#000080",
+        variant_id: 57,
         images: [
           parallelImg('Navy_blue_full_sleeves.png'),
           modelImg('Navy_blue_full_sleeves.png'),
@@ -156,41 +160,53 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Grey", hex: "#808080",
-        images: [ 
-          parallelImg('Grey.png') 
-      ]
+        name: "Grey",
+        hex: "#808080",
+        variant_id: 59,
+        images: [
+          parallelImg('Grey.png')
+        ]
       },
       {
-        name: "Green", hex: "#006400",
+        name: "Green",
+        hex: "#006400",
+        variant_id: 58,
         images: [
           parallelImg('Dark_green.png'),
           modelImg('Dark_Green_full_sleeves.png'),
         ]
       },
       {
-        name: "Navy Blue", hex: "#000080",
+        name: "Navy Blue",
+        hex: "#000080",
+        variant_id: 60,
         images: [
           parallelImg('Navy_blue_full_sleeves.png'),
           modelImg('Navy_blue_full_sleeves.png'),
         ]
       },
       {
-        name: "Mustard Yellow", hex: "#FFCB05",
+        name: "Mustard Yellow",
+        hex: "#FFCB05",
+        variant_id: 61,
         images: [
           parallelImg('mustard_yellow_scrub.png'),
           modelImg('Mustard_yellow_scrub_suit.png'),
         ]
       },
       {
-        name: "Mint Green", hex: "#98FB98",
+        name: "Mint Green",
+        hex: "#98FB98",
+        variant_id: 62,
         images: [
           parallelImg('Mint_green_full_sleevs.png'),
           modelImg('Mint_green_full_sleeves_scrub.png'),
         ]
       },
       {
-        name: "Maroon", hex: "#800000",
+        name: "Maroon",
+        hex: "#800000",
+        variant_id: 63,
         images: [
           parallelImg('maroon_scrub.png'),
           modelImg('Maroon_scrub_suit.png'),
@@ -237,21 +253,27 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Soft Blue+Grey", hex: "#6699CC",
+        name: "Soft Blue+Grey",
+        hex: "#6699CC",
+        variant_id: 64,
         images: [
           parallelImg('Round_neck_blue+grey_scrub_suit_men.png'),
           modelImg('Grey+blue_scrub.png'),
         ]
       },
       {
-        name: "Mint Green", hex: "#98FB98",
+        name: "Mint Green",
+        hex: "#98FB98",
+        variant_id: 65,
         images: [
           parallelImg('Mint_green_full_sleevs.png'),
           modelImg('Mint_green_full_sleeves_scrub.png'),
         ]
       },
       {
-        name: "brown", hex: "#964B00",
+        name: "brown",
+        hex: "#964B00",
+        variant_id: 66,
         images: [
           parallelImg('brown_and_light_brown.png'),
           modelImg('brothers_suit.png'),
@@ -299,14 +321,18 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Maroon", hex: "#6b1a2a",
+        name: "Maroon",
+        hex: "#6b1a2a",
+        variant_id: 67,
         images: [
           parallelImg('maroon_scrub.png'),
           modelImg('Maroon_scrub_suit.png'),
         ]
       },
       {
-        name: "Mustard Yellow", hex: "#FFCB05",
+        name: "Mustard Yellow",
+        hex: "#FFCB05",
+        variant_id: 68,
         images: [
           parallelImg('mustard_yellow_scrub.png'),
           modelImg('Mustard_yellow_scrub_suit.png'),
@@ -353,21 +379,27 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Mint Green", hex: "#98FB98",
+        name: "Mint Green",
+        hex: "#98FB98",
+        variant_id: 69,
         images: [
           parallelImg('Mint_green_full_sleevs.png'),
           modelImg('Mint_green_full_sleeves_scrub.png'),
         ]
       },
       {
-        name: "Tan", hex: "#D2B48C",
+        name: "Tan",
+        hex: "#D2B48C",
+        variant_id: 70,
         images: [
           parallelImg('Tan_color_full_sleevs_scrub_men.png'),
           modelImg('Tan_color_full_sleeves_scrub.png'),
         ]
       },
       {
-        name: "Yellow", hex: "#FFFF00",
+        name: "Yellow",
+        hex: "#FFFF00",
+        variant_id: 71,
         images: [
           parallelImg('yellow_full_sleeve_scrub_suit_men.png'),
           modelImg('light_yellow_full_sleeves_scrub.png'),
@@ -414,14 +446,18 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Navy Green", hex: "#006400",
+        name: "Navy Green",
+        hex: "#006400",
+        variant_id: 73,
         images: [
           parallelImg('Vneck_dark_green_scrub_suit_men.png'),
           modelImg('V_neck_Dark_green_scrub.png'),
         ]
       },
       {
-        name: "Tan color", hex: "#C4A484",
+        name: "Tan color",
+        hex: "#C4A484",
+        variant_id: 74,
         images: [
           parallelImg('Vneck_scrub_suit_men.png'),
           modelImg('V_neck_Tan_color_scrub.png'),
@@ -470,55 +506,64 @@ export const menProducts = [
     ],
     colors: [
       {
-        name: "Black", hex: "#000000",
+        name: "Black",
+        hex: "#000000",
+        variant_id: 72,
         images: [
           collarBoyImg('Black1.png'),
           collarBoyImg('Black2.png'),
           collarBoyImg('Black3.png'),
-      ],
+        ],
       },
-
       {
-        name: "Blue", hex: "#ADD8E6",
+        name: "Blue",
+        hex: "#ADD8E6",
+        variant_id: 75,
         images: [
           collarBoyImg('Blue1.png'),
           collarBoyImg('Blue2.png'),
           collarBoyImg('Light_Blue3.png'),
-      ],
+        ],
       },
-
       {
-        name: "Brown", hex: "#964B00",
+        name: "Brown",
+        hex: "#964B00",
+        variant_id: 58,
         images: [
           collarBoyImg('Brown1.png'),
           collarBoyImg('Brown2.png'),
           collarBoyImg('Brown3.png'),
-      ],
+        ],
       },
       {
-        name: "Dark Grey", hex: "#A9A9A9",
+        name: "Dark Grey",
+        hex: "#A9A9A9",
+        variant_id: 76,
         images: [
           collarBoyImg('Dark_Grey1.png'),
           collarBoyImg('Dark_Grey2.png'),
           collarBoyImg('Dark_Grey3.png'),
-      ],
+        ],
       },
-
       {
-        name: "Green", hex: "#008000",
+        name: "Green",
+        hex: "#008000",
+        variant_id: 77,
         images: [
           collarBoyImg('Green1.png'),
           collarBoyImg('Green2.png'),
           collarBoyImg('Green3.png'),
-      ],
+        ],
       },
       {
-        name: "Navy blue", hex: "#000080",
+        name: "Navy blue",
+        hex: "#000080",
+        variant_id: 78,
         images: [
           collarBoyImg('Navy_blue1.png'),
           collarBoyImg('Navy_blue2.png'),
           collarBoyImg('Navy_blue3.png'),
-      ],
+        ],
       },
     ]
   },

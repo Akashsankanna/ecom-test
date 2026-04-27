@@ -2,11 +2,11 @@ import { apronFullImg, apronThreeImg, apronHalfImg } from './imageHelper'
 
 export const apronsProducts = [
   {
-    id: 201,
+    id: 33,
     title: "Doctor apron full length sleeves",
     price: 879.00,
     oldPrice: 1179.00,
-    
+
     rating: 4.8,
     color: "White",
     type: "aprons",
@@ -48,11 +48,11 @@ export const apronsProducts = [
   },
 
   {
-    id: 202,
+    id: 33,
     title: "Doctor apron full length sleeves",
     price: 879.00,
     oldPrice: 1179.00,
-    
+
     rating: 4.8,
     color: "White",
     type: "aprons",
@@ -94,11 +94,11 @@ export const apronsProducts = [
   },
 
   {
-    id: 203,
+    id: 34,
     title: "Doctor apron full length 3-4 sleeves",
     price: 800.00,
     oldPrice: 1000.00,
-    
+
     rating: 4.9,
     color: "White",
     type: "aprons",
@@ -140,7 +140,7 @@ export const apronsProducts = [
   },
 
   {
-    id: 204,
+    id: 34,
     title: "Doctor apron full length 3-4 sleeves",
     price: 800.00,
     oldPrice: 1000.00,
@@ -185,7 +185,7 @@ export const apronsProducts = [
   },
 
   {
-    id: 205,
+    id: 35,
     title: "Doctor apron half length and half sleeves",
     price: 700.00,
     oldPrice: 999.00,
@@ -230,7 +230,7 @@ export const apronsProducts = [
   },
 
   {
-    id: 206,
+    id: 35,
     title: "Doctor apron half length and half sleeves",
     price: 700.00,
     oldPrice: 999.00,

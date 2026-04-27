@@ -55,17 +55,18 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { authAPI } from 'src/api/auth'
 import { useAuthStore } from 'src/stores/auth'
 
-const router     = useRouter()
-const authStore  = useAuthStore()
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
 
-const identifier    = ref('')
-const password      = ref('')
-const error         = ref('')
-const loading       = ref(false)
+const identifier = ref('')
+const password = ref('')
+const error = ref('')
+const loading = ref(false)
 const showVerifyMsg = ref(false)
 
 async function login() {
@@ -95,17 +96,17 @@ async function login() {
       return
     }
 
-    authStore.setAuth(res.access_token, {
-      email:       res.user.email,
-      keycloak_id: res.user.keycloak_id,
-      name:        res.user.name,
-      id_token:    res.id_token,
+    await authStore.setAuth(res.access_token, {
+      id: res?.user?.id,
+      email: res?.user?.email,
+      keycloak_id: res?.user?.keycloak_id,
+      name: res?.user?.name,
+      id_token: res?.id_token,
     })
 
-    router.push('/profile')
-
+    const redirectPath = route.query.redirect || '/'
+    router.push(redirectPath)
   } catch (e) {
-    // Check if the HTTP error response has a detail field
     if (e?.response?.status === 403) {
       showVerifyMsg.value = true
     } else {
@@ -117,16 +118,31 @@ async function login() {
 }
 
 function loginWithGoogle() {
-  window.location.href = 'http://localhost:8000/auth/login/google'
+  const redirectPath = route.query.redirect || '/'
+  window.location.href = `http://localhost:8000/auth/login/google?redirect=${encodeURIComponent(redirectPath)}`
 }
 </script>
 
 <style lang="scss">
 @import 'src/css/login.scss';
 
-.error    { color: red;  font-size: 13px; margin: 4px 0; }
-.divider  { text-align: center; margin: 12px 0; color: #aaa; }
-.btn-google { background: #fff; color: #333; border: 1px solid #ddd; }
+.error {
+  color: red;
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+.divider {
+  text-align: center;
+  margin: 12px 0;
+  color: #aaa;
+}
+
+.btn-google {
+  background: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+}
 
 .forgot {
   text-align: right;
@@ -134,7 +150,11 @@ function loginWithGoogle() {
   color: #666;
   margin: 6px 0 2px;
   cursor: pointer;
-  &:hover { color: #333; text-decoration: underline; }
+
+  &:hover {
+    color: #333;
+    text-decoration: underline;
+  }
 }
 
 .verify-box {
@@ -143,6 +163,10 @@ function loginWithGoogle() {
   background: #fff8e1;
   border-radius: 8px;
   margin-bottom: 12px;
-  p { margin: 6px 0; font-size: 14px; }
+
+  p {
+    margin: 6px 0;
+    font-size: 14px;
+  }
 }
 </style>

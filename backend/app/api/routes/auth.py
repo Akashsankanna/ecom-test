@@ -171,6 +171,7 @@ def login_with_password(data: PasswordLogin, db: Session = Depends(get_db)):
         "id_token":     token_json.get("id_token"),
         "user": {
             "email":       email,
+            "id": user.id,
             "name":        name,
             "keycloak_id": keycloak_id,
         }

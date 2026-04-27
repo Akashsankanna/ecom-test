@@ -34,7 +34,7 @@
         <div class="rating-row">
           <span class="stars">★★★★★</span>
           <span class="rating-val">{{ product.rating }}</span>
-          
+
         </div>
 
         <div class="price-row">
@@ -92,7 +92,7 @@
             <p v-if="sizeError" class="size-error">
                 Please select size
             </p>
-            
+
         </div>
                 <!-- ✅ CUSTOMIZATION -->
       <ProductCustomization
@@ -196,7 +196,7 @@
           </div>
         </div>
 
-        
+
       <!-- DETAILS ACCORDION -->
       <div class="product-info-right">
 
@@ -241,7 +241,7 @@
                 </ul>
             </div>
           </div>
-          
+
         <!-- Return & Exchange -->
           <div class="section accordion">
             <div class="accordion-header" @click="activeAccordion = activeAccordion === 2 ? null : 2">
@@ -319,15 +319,82 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { apronsProducts } from 'src/data/apronsProducts'
-import { addToCart, toggleWishlist, isInWishlist } from 'src/stores/shop'
-//import sizeChartImg from 'src/assets/size_chart/size-chart.png'
-//import measureImg from 'src/assets/size_chart/measure.png'
-import ProductCustomization from 'components/ProductCustomization.vue'
+import { api } from 'boot/axios'
+//import ProductCustomization from 'components/ProductCustomization.vue'
 
-//customization
+// =========================
+// ROUTER
+// =========================
+const route = useRoute()
+const router = useRouter()
+
+// =========================
+// PRODUCT DATA FROM BACKEND
+// =========================
+const product = ref(null)
+const loading = ref(false)
+
+const loadProduct = async () => {
+  try {
+    loading.value = true
+
+    const productId = Number(route.params.id)
+
+    // If your backend supports single product endpoint use this:
+    // const res = await api.get(`/products/${productId}`)
+
+    // If only /products exists, fetch all and filter:
+    const res = await api.get('/products/')
+    const products = Array.isArray(res.data) ? res.data : (res.data?.items || [])
+
+    const matched = products.find(p => Number(p.id) === productId)
+
+    if (!matched) {
+      product.value = null
+      return
+    }
+
+    product.value = {
+      ...matched,
+      title: matched.name || matched.title || '',
+      price: matched.price || matched.min_price || 0,
+      oldPrice: matched.old_price || null,
+      rating: matched.rating || '4.5',
+      description: matched.description || '',
+      details: matched.details || [],
+      fabricDescription: matched.fabricDescription || '',
+      fabricCare: matched.fabricCare || [],
+      returnDescription: matched.returnDescription || '',
+      returnPoints: matched.returnPoints || [],
+      images: matched.images?.length
+        ? matched.images.map(img => img.image_url || img.url || img)
+        : matched.image_url
+          ? [matched.image_url]
+          : [],
+      variants: matched.variants || matched.product_variants || []
+    }
+  } catch (error) {
+    console.error('Failed to load product:', error)
+    product.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadProduct)
+
+watch(
+  () => route.params.id,
+  async () => {
+    await loadProduct()
+  }
+)
+
+// =========================
+// CUSTOMIZATION
+// =========================
 const customizationData = ref(null)
 
 const onCustomizationUpdated = (payload) => {
@@ -335,24 +402,18 @@ const onCustomizationUpdated = (payload) => {
   console.log('Customization:', payload)
 }
 
-//image show on different product 
-const sizeChartImg = computed(() => product.value?.sizeChart)
-const measureImg   = computed(() => product.value?.measureChart)
-
-// accordion
-const activeAccordion = ref(null)
-
-const route  = useRoute()
-const router = useRouter()
-
-const product = computed(() => apronsProducts.find(p => p.id === Number(route.params.id)))
-
-// Images
+// =========================
+// IMAGES
+// =========================
 const selectedImage = ref('')
-const imageDialog   = ref(false)
+const imageDialog = ref(false)
 
-watch(product, val => {
-  if (val) selectedImage.value = val.images[0]
+watch(product, (val) => {
+  if (val?.images?.length) {
+    selectedImage.value = val.images[0]
+  } else {
+    selectedImage.value = ''
+  }
 }, { immediate: true })
 
 const openImageDialog = () => {
@@ -360,55 +421,88 @@ const openImageDialog = () => {
 }
 
 const prevImage = () => {
+  if (!product.value?.images?.length) return
   const imgs = product.value.images
   selectedImage.value = imgs[(imgs.indexOf(selectedImage.value) - 1 + imgs.length) % imgs.length]
 }
+
 const nextImage = () => {
+  if (!product.value?.images?.length) return
   const imgs = product.value.images
   selectedImage.value = imgs[(imgs.indexOf(selectedImage.value) + 1) % imgs.length]
 }
 
+// =========================
+// PRICE / DISCOUNT
+// =========================
 const discountPercent = computed(() => {
   const p = product.value
   if (!p?.oldPrice || !p?.price) return 0
-
   return Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
 })
 
-// SIZE
-const sizes = ['S','M','L','XL','2XL']
-const selectedSize = ref('')
+// =========================
+// SIZE / VARIANT
+// =========================
+const sizes = computed(() => {
+  if (!product.value?.variants?.length) return ['S', 'M', 'L', 'XL', '2XL']
 
-//size chya khali error 
+  return product.value.variants.map(v => {
+    if (v.size) return v.size
+    if (v.variant_name) return v.variant_name
+    return ''
+  }).filter(Boolean)
+})
+
+const selectedSize = ref('')
 const sizeError = ref(false)
 
-// Qty
+const selectedVariant = computed(() => {
+  if (!product.value?.variants?.length) return null
+
+  return product.value.variants.find(v => {
+    return (
+      v.size === selectedSize.value ||
+      v.variant_name === selectedSize.value
+    )
+  }) || null
+})
+
+// =========================
+// QTY
+// =========================
 const quantity = ref(1)
 const increaseQty = () => { quantity.value++ }
 const decreaseQty = () => { if (quantity.value > 1) quantity.value-- }
 
-
-//size chart popup
+// =========================
+// SIZE CHART
+// =========================
 const sizeChartDialog = ref(false)
 const activeTab = ref('size')
+const sizeChartImg = computed(() => product.value?.sizeChart || '')
+const measureImg = computed(() => product.value?.measureChart || '')
 
-// ✅ PINCODE - 6 digit limit, enter key, auto clear
+// =========================
+// ACCORDION
+// =========================
+const activeAccordion = ref(null)
+
+// =========================
+// PINCODE
+// =========================
 const pincode = ref('')
 const deliveryStatus = ref(null)
 const pincodeError = ref('')
 const isChecking = ref(false)
 
-// ✅ Clear previous result when user types new pincode
 const onPincodeInput = () => {
-  // Max 6 digits enforce
   if (pincode.value.length > 6) {
     pincode.value = pincode.value.slice(0, 6)
   }
-  // Clear old results as user types
   deliveryStatus.value = null
   pincodeError.value = ''
 }
-
 
 const solapurPincodes = [
   '413001','413002','413003','413004','413005',
@@ -423,7 +517,7 @@ const solapurPincodes = [
 
 const checkPincode = () => {
   const pin = pincode.value.trim()
-  // ✅ Only allow exactly 6 digits
+
   if (pin.length !== 6) {
     pincodeError.value = 'Please enter a valid 6-digit pincode'
     return
@@ -433,7 +527,6 @@ const checkPincode = () => {
   pincodeError.value = ''
   isChecking.value = true
 
-  // ✅ Simulated API call (replace with real backend call)
   setTimeout(() => {
     if (solapurPincodes.includes(pin)) {
       deliveryStatus.value = {
@@ -447,10 +540,41 @@ const checkPincode = () => {
   }, 1200)
 }
 
+// =========================
+// GUEST / USER AUTH DATA
+// =========================
+const getAuthData = () => {
+  const rawUserId = localStorage.getItem('user_id')
+  const guestUuid = localStorage.getItem('guest_uuid')
 
-// ✅ FLYING CART ANIMATION
+  return {
+    user_id: rawUserId ? Number(rawUserId) : null,
+    guest_uuid: guestUuid || null,
+  }
+}
+
+const ensureGuestUuid = async () => {
+  const existingGuestUuid = localStorage.getItem('guest_uuid')
+  const rawUserId = localStorage.getItem('user_id')
+
+  if (rawUserId) return null
+  if (existingGuestUuid) return existingGuestUuid
+
+  const res = await api.post('/cart/guest')
+  const guestUuid = res?.data?.guest_uuid || res?.data?.guest_id || null
+
+  if (!guestUuid) {
+    throw new Error('Guest UUID not returned from backend')
+  }
+
+  localStorage.setItem('guest_uuid', guestUuid)
+  return guestUuid
+}
+
+// =========================
+// FLYING CART ANIMATION
+// =========================
 const cartBtnRef = ref(null)
-
 const flyingImgRef = ref(null)
 const flyingVisible = ref(false)
 const flyingActive = ref(false)
@@ -459,32 +583,18 @@ const flyingStyle = ref({})
 const triggerFlyAnimation = async () => {
   if (!cartBtnRef.value) return
 
-  //Source: Add to Cart button position
   const btnRect = cartBtnRef.value.getBoundingClientRect()
+  const cartIcon = document.querySelector('#cartIcon')
 
-  // Target: cart icon (navbar)
-  //const cartIcon =
-    //document.querySelector('.cart-icon') ||
-    //document.querySelector('[data-cart-icon]') ||
-    //document.querySelector('#cartIcon') ||
-    //document.querySelector('a[href="/cart"]')
-
-    const cartIcon = document.querySelector('#cartIcon')
-
-  // If cart icon not found → fallback top-right corner
   const targetRect = cartIcon
     ? cartIcon.getBoundingClientRect()
     : { left: window.innerWidth - 40, top: 20, width: 0, height: 0 }
 
-  // Start position (center of button)
   const startX = btnRect.left + btnRect.width / 2 - 25
   const startY = btnRect.top + btnRect.height / 2 - 25
-
-  // End position (center of cart icon)
   const targetX = targetRect.left + targetRect.width / 2 - 25
   const targetY = targetRect.top + targetRect.height / 2 - 25
 
-  // Set initial image position (no animation yet)
   flyingStyle.value = {
     left: startX + 'px',
     top: startY + 'px',
@@ -498,57 +608,62 @@ const triggerFlyAnimation = async () => {
 
   await nextTick()
 
-  // 📌 Smooth delay for proper DOM render
   setTimeout(() => {
     flyingStyle.value = {
       left: targetX + 'px',
       top: targetY + 'px',
-
-      // ⭐ slower + smoother movement (important fix)
       transform: 'scale(0.4)',
       opacity: '0',
       transition: 'all 1.2s cubic-bezier(0.22, 1, 0.36, 1)'
     }
 
-    // Hide after animation completes
     setTimeout(() => {
       flyingVisible.value = false
     }, 1200)
   }, 50)
 }
 
-// Cart
-const handleAddToCart = () => {
-  if (!selectedSize.value) {
-    sizeError.value = true
-    return
+// =========================
+// ADD TO CART -> BACKEND
+// =========================
+const handleAddToCart = async () => {
+  try {
+    if (!selectedSize.value) {
+      sizeError.value = true
+      return
+    }
+
+    if (!selectedVariant.value?.id) {
+      console.error('variant_id missing for selected product')
+      return
+    }
+
+    await ensureGuestUuid()
+
+    const auth = getAuthData()
+
+    const payload = {
+      variant_id: Number(selectedVariant.value.id),
+      quantity: quantity.value,
+      ...(auth.user_id ? { user_id: auth.user_id } : { guest_uuid: auth.guest_uuid })
+    }
+
+    await api.post('/cart/add', payload)
+
+    triggerFlyAnimation()
+    console.log('Added to cart successfully')
+
+  } catch (error) {
+    console.error('Add to cart failed:', error?.response?.data || error)
   }
-
-  // ✅ Trigger flying animation
-  triggerFlyAnimation()
-
-  addToCart({
-    ...product.value,
-    size: selectedSize.value,
-    image: selectedImage.value,
-    qty: quantity.value,
-
-    // ✅ ADD THIS
-    customization: customizationData.value
-  })
 }
 
-const handleBuyNow = () => {
-  if (!selectedSize.value) {
-    sizeError.value = true
-    return
-  }
-  handleAddToCart()
+const handleBuyNow = async () => {
+  await handleAddToCart()
   router.push('/cart')
 }
-
 </script>
 
 <style lang="scss">
-@import 'src/css/aprons-product-details.scss';
+//@import 'src/css/aprons-product-details.scss';
 </style>

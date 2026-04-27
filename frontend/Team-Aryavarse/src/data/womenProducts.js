@@ -10,6 +10,7 @@ import {
 export const womenProducts = [
   {
     id: 1,
+    variant_id: 101,
     title: "Classic Women's V-Neck Scrub",
     category: 'Scrubs',
     fabric: 'Classic',
@@ -29,6 +30,7 @@ export const womenProducts = [
       {
         name: 'Black',
         hex: '#000000',
+        variant_id: 101,
         images: [
           collarGirlImg('Black1.png'),
           collarGirlImg('Black(s)2.png'),
@@ -111,6 +113,7 @@ export const womenProducts = [
 
   {
     id: 2,
+    variant_id: 102,
     title: "Classic Women's V-Neck Scrub",
     category: 'Scrubs',
     fabric: 'Classic',
@@ -130,6 +133,7 @@ export const womenProducts = [
       {
         name: 'Dark Green',
         hex: '#013220',
+        variant_id: 102,
         images: [
           vNeckModelImg('dark_green1.png'),
           vNeckSideImg('dark_green2.png'),
@@ -211,6 +215,7 @@ export const womenProducts = [
 
   {
     id: 3,
+    variant_id: 103,
     title: "ecoflex™ Lite Women's Longsleeves Scrub",
     category: 'Scrubs',
     fabric: 'Ecoflex Lite',
@@ -228,6 +233,7 @@ export const womenProducts = [
       {
         name: 'Green',
         hex: '#006400',
+        variant_id: 103,
         images: [
           parallelImg('Dark_green_full_sleeves_zip_scrub_suit_women.png'),
           modelImg('Dark_Green_full_sleeves.png'),
@@ -262,6 +268,7 @@ export const womenProducts = [
 
   {
     id: 4,
+    variant_id: 104,
     title: "Classic Women's Round-Neck Scrub",
     category: 'Scrubs',
     fabric: 'Classic',
@@ -279,6 +286,7 @@ export const womenProducts = [
       {
         name: 'Soft Blue+Grey',
         hex: '#6699CC',
+        variant_id: 104,
         images: [
           parallelImg('Round_neck_blue+grey_scrub_suit_women.png'),
           modelImg('Grey+blue_scrub.png'),
@@ -314,6 +322,7 @@ export const womenProducts = [
 
   {
     id: 5,
+    variant_id: 105,
     title: "Classic Women's Longsleeves Scrub",
     category: 'Scrubs',
     fabric: 'Classic',
@@ -332,6 +341,7 @@ export const womenProducts = [
       {
         name: 'Yellow',
         hex: '#FFFF00',
+        variant_id: 105,
         images: [
           parallelImg('Light_yellow_full_sleeves.png'),
           modelImg('light_yellow_full_sleeves_scrub.png'),
@@ -369,6 +379,7 @@ export const womenProducts = [
 
   {
     id: 6,
+    variant_id: 106,
     title: "ecoflex™ Lite Women's V-Neck Scrub",
     category: 'Scrubs',
     fabric: 'Ecoflex Lite',
@@ -387,6 +398,7 @@ export const womenProducts = [
       {
         name: 'Dark Grey',
         hex: '#A9A9A9',
+        variant_id: 106,
         images: [
           collarGirlImg('Dark_Grey1.png'),
           collarGirlImg('Dark_Grey2.png'),
@@ -468,6 +480,7 @@ export const womenProducts = [
 
   {
     id: 7,
+    variant_id: 107,
     title: "Ecoflex Women's Sleeves Scrub",
     category: 'Scrubs',
     fabric: 'Ecoflex',
@@ -482,6 +495,7 @@ export const womenProducts = [
       {
         name: 'Blue',
         hex: '#00008B',
+        variant_id: 107,
         images: [parallelImg('Vneck_dark_blue_scrub_women.png'), modelImg('Navy blue scrub.png')],
       },
     ],
@@ -514,6 +528,7 @@ export const womenProducts = [
 
   {
     id: 8,
+    variant_id: 108,
     title: "Classic Women's V-Neck Scrub",
     category: 'Scrubs',
     fabric: 'Classic',
@@ -532,6 +547,7 @@ export const womenProducts = [
       {
         name: 'Dark Green',
         hex: '#013220',
+        variant_id: 108,
         images: [
           vNeckModelImg('dark_green1.png'),
           vNeckSideImg('dark_green2.png'),

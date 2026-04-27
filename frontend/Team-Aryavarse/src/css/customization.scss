@@ -1,4 +1,4 @@
-
+@use "sass:color";
 
 // ─── Variables ────────────────────────────────────────────────
 $teal:        #009688;
@@ -37,11 +37,11 @@ $radius-sm:   6px;
   cursor: pointer;
   user-select: none;
   transition: background 0.2s;
+  
 
   &:hover {
-    background: darken($teal-light, 4%);
+    background: color.adjust($teal-light, $lightness: -4%);
   }
-
   .toggle-left {
     display: flex;
     align-items: center;

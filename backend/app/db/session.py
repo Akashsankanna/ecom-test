@@ -1,12 +1,26 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+load_dotenv()
 
-DATABASE_URL = "postgresql://postgres:Shreeya%40210926@localhost:5432/healthcare5_db"
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+Base = declarative_base()
+
+
+
+# Read from .env
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "ecom8")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    echo=False,   # set True temporarily if you need to see raw SQL
+    echo=False,
 )
 
 SessionLocal = sessionmaker(
@@ -14,7 +28,6 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
-
 
 def get_db():
     db = SessionLocal()
