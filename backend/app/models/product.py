@@ -46,6 +46,19 @@ class Product(Base):
     )
 
     # =====================================================
+    # GENDER / SECTION
+    # Allowed values: 'men' | 'women' | 'unisex'
+    # Mirrors the DB CHECK constraint chk_gender.
+    # Default 'men' keeps behaviour predictable; change to
+    # 'unisex' if that suits your catalogue better.
+    # =====================================================
+    gender = Column(
+        String(10),
+        nullable=True,
+        default="men"
+    )
+
+    # =====================================================
     # FOREIGN KEYS
     # =====================================================
     category_id = Column(

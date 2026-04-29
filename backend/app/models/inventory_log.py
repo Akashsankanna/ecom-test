@@ -67,4 +67,4 @@ class InventoryLog(Base):
         TIMESTAMP(timezone=True),
         server_default=func.now()
     )
-    reference_type = Column(String(50), nullable=True)
+    # reference_type = Column(String(50), nullable=True)

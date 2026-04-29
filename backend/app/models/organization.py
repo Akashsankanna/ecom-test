@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db.base import Base
 
 
@@ -21,3 +22,10 @@ class Organization(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now())
+
+    # ✅ ADD THIS
+    bulk_orders = relationship(
+        "BulkOrder",
+        back_populates="organization",
+        cascade="all, delete-orphan"
+    )

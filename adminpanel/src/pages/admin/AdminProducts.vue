@@ -492,46 +492,70 @@
             <!-- LEFT: Form fields -->
             <div class="col-12 col-md-7">
               <div class="form-section-title">Basic Information</div>
-              <div class="row q-col-gutter-md">
-                <div class="col-12">
-                  <q-input
-                    v-model="pForm.name"
-                    label="Product Name *"
-                    outlined dense
-                    input-class="full-input"
-                    :rules="[v=>!!v||'Required']"
-                  />
-                </div>
-                <div class="col-6">
-                  <q-input
-                    v-model="pForm.sku"
-                    label="SKU *"
-                    outlined dense
-                    input-class="full-input"
-                  />
-                </div>
-                <div class="col-6">
-                  <q-select
-                    v-model="pForm.category_id"
-                    :options="categories"
-                    option-value="id"
-                    option-label="name"
-                    emit-value map-options
-                    label="Category"
-                    outlined dense clearable
-                    popup-content-class="select-popup"
-                  />
-                </div>
-                <div class="col-12">
-                  <q-input
-                    v-model="pForm.description"
-                    label="Description"
-                    outlined dense
-                    type="textarea"
-                    rows="2"
-                    input-class="full-input"
-                  />
-                </div>
+<div class="row q-col-gutter-md">
+
+  <div class="col-12">
+    <q-input
+      v-model="pForm.name"
+      label="Product Name *"
+      outlined dense
+      input-class="full-input"
+      :rules="[v=>!!v||'Required']"
+    />
+  </div>
+
+  <div class="col-6">
+    <q-input
+      v-model="pForm.sku"
+      label="SKU *"
+      outlined dense
+      input-class="full-input"
+    />
+  </div>
+
+  <div class="col-6">
+    <q-select
+      v-model="pForm.category_id"
+      :options="categories"
+      option-value="id"
+      option-label="name"
+      emit-value map-options
+      label="Category"
+      outlined dense clearable
+      popup-content-class="select-popup"
+    />
+  </div>
+
+  <!-- ✅ ADDED THIS (Gender / Section) -->
+  <div class="col-6">
+    <q-select
+      v-model="pForm.gender"
+      :options="[
+        { label: 'Men', value: 'men' },
+        { label: 'Women', value: 'women' },
+        { label: 'Unisex / Homepage', value: 'all' }
+      ]"
+      option-value="value"
+      option-label="label"
+      emit-value
+      map-options
+      label="Section (Gender) *"
+      outlined dense
+    />
+  </div>
+
+  <div class="col-12">
+    <q-input
+      v-model="pForm.description"
+      label="Description"
+      outlined dense
+      type="textarea"
+      rows="2"
+      input-class="full-input"
+    />
+  </div>
+
+</div>
               </div>
 
               <div class="form-section-title q-mt-lg">Additional Details</div>
@@ -666,7 +690,7 @@
                 </template>
               </div>
             </div>
-          </div>
+          
         </q-card-section>
 
         <q-separator />
@@ -1016,9 +1040,17 @@ const taxRates    = ref([])
 
 // ── Forms ─────────────────────────────────────────────
 const defaultPForm = () => ({
-  name: '', sku: '', category_id: null, description: '',
-  details_and_fit: '', fabric_and_care: '', return_and_exchange: '',
-  tax_rate_id: null, is_active: true, is_bestseller: false
+  name: '',
+  sku: '',
+  category_id: null,
+  description: '',
+  details_and_fit: '',
+  fabric_and_care: '',
+  return_and_exchange: '',
+  tax_rate_id: null,
+  is_active: true,
+  is_bestseller: false,
+  gender: 'men' // ✅ NEW (default safe)
 })
 const defaultVForm = () => ({
   product_id: null, variant_name: '', price: 0, stock: 0,
@@ -1284,7 +1316,9 @@ const openProductModal = async (p) => {
       return_and_exchange:p.return_and_exchange || '',
       tax_rate_id:        p.tax_rate_id   ?? null,   // ← always carry existing value
       is_active:          p.is_active,
-      is_bestseller:      p.is_bestseller  || false
+      is_bestseller:      p.is_bestseller  || false,
+      gender: p.gender || 'men' // ✅ NEW
+
     }
   } else {
     editingProductId.value = null
@@ -1343,7 +1377,9 @@ const saveProduct = async () => {
       details_and_fit:    pForm.value.details_and_fit    || '',
       fabric_and_care:    pForm.value.fabric_and_care    || '',
       return_and_exchange:pForm.value.return_and_exchange|| '',
-      tax_rate_id:        pForm.value.tax_rate_id        ?? null   // ← always sent, even when null
+      tax_rate_id:        pForm.value.tax_rate_id        ?? null ,  // ← always sent, even when null
+      gender: pForm.value.gender || 'men'
+
     }
 
     let savedId   // id of the product we just created / updated

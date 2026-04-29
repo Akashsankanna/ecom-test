@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, validator
+from typing import Optional, List, Literal
 from decimal import Decimal
 
 
@@ -130,7 +130,21 @@ class VariantOut(BaseModel):
 
 # =====================================================
 # PRODUCT
+# Allowed gender values mirror the DB CHECK constraint:
+#   chk_gender: gender IN ('men', 'women', 'unisex')
+# The admin UI also uses 'all' as a display alias for
+# 'unisex', so we accept it and normalise on the way in.
 # =====================================================
+
+GenderType = Literal["men", "women", "unisex", "all"]
+
+def _normalise_gender(v: Optional[str]) -> Optional[str]:
+    """Map 'all' → 'unisex' and lowercase everything else."""
+    if v is None:
+        return "men"          # safe default matching DB constraint
+    v = v.strip().lower()
+    return "unisex" if v == "all" else v
+
 
 class ProductCreate(BaseModel):
     name: str
@@ -138,6 +152,11 @@ class ProductCreate(BaseModel):
     sku: str
 
     category_id: int
+
+    # ── gender is now REQUIRED on create ──────────────
+    # Accept 'men' | 'women' | 'unisex' | 'all'
+    # 'all' is normalised to 'unisex' before hitting the DB.
+    gender: Optional[GenderType] = "men"
 
     is_active: Optional[bool] = True
 
@@ -150,6 +169,10 @@ class ProductCreate(BaseModel):
     # slug auto-generated in DB
     # bestseller managed separately
 
+    @validator("gender", pre=True, always=True)
+    def normalise_gender(cls, v):
+        return _normalise_gender(v)
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -158,6 +181,8 @@ class ProductUpdate(BaseModel):
 
     category_id: Optional[int] = None
 
+    gender: Optional[GenderType] = None
+
     is_active: Optional[bool] = None
 
     details_and_fit: Optional[str] = None
@@ -165,6 +190,12 @@ class ProductUpdate(BaseModel):
     return_and_exchange: Optional[str] = None
 
     tax_rate_id: Optional[int] = None
+
+    @validator("gender", pre=True, always=True)
+    def normalise_gender(cls, v):
+        if v is None:
+            return None   # no-op on partial update
+        return _normalise_gender(v)
 
 
 class ProductOut(BaseModel):
@@ -177,6 +208,9 @@ class ProductOut(BaseModel):
     slug: Optional[str] = None
 
     category_id: Optional[int] = None
+
+    # ── gender exposed in every response ──────────────
+    gender: Optional[str] = "men"
 
     is_active: bool
     is_deleted: bool

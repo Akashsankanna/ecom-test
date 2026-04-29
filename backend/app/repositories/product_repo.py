@@ -1,7 +1,7 @@
+import os
+from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Optional
-import os
 
 from app.models.product import Product
 from app.models.product_variant import ProductVariant
@@ -32,7 +32,7 @@ class ProductRepository:
     @staticmethod
     def create_category(db: Session, data):
         result = db.execute(text("""
-            INSERT INTO category
+            INSERT INTO category 
             (name, description, is_active, created_at, updated_at)
             VALUES (:name, :description, :is_active, NOW(), NOW())
             RETURNING *
@@ -48,8 +48,8 @@ class ProductRepository:
     @staticmethod
     def update_category(db: Session, category_id: int, data):
         result = db.execute(text("""
-            UPDATE category
-            SET
+            UPDATE category 
+            SET 
                 name = COALESCE(:name, name),
                 description = COALESCE(:description, description),
                 is_active = COALESCE(:is_active, is_active),
@@ -69,7 +69,7 @@ class ProductRepository:
     @staticmethod
     def delete_category(db: Session, category_id: int):
         result = db.execute(text("""
-            UPDATE category
+            UPDATE category 
             SET is_deleted = TRUE,
                 updated_at = NOW()
             WHERE id = :id
@@ -92,7 +92,7 @@ class ProductRepository:
     @staticmethod
     def create_color(db: Session, data):
         result = db.execute(text("""
-            INSERT INTO color
+            INSERT INTO color 
             (name, hex_code, is_active, created_at)
             VALUES (:name, :hex_code, TRUE, NOW())
             RETURNING *
@@ -110,8 +110,8 @@ class ProductRepository:
 
     @staticmethod
     def get_all_products(
-        db: Session,
-        category_id: Optional[int] = None,
+        db: Session, 
+        category_id: Optional[int] = None, 
         is_active: Optional[bool] = None
     ):
         query = db.query(Product).filter(Product.is_deleted == False)
@@ -125,16 +125,8 @@ class ProductRepository:
         return query.order_by(Product.created_at.desc()).all()
 
     @staticmethod
-    def get_products(
-        db: Session,
-        category_id: Optional[int] = None,
-        is_active: Optional[bool] = None
-    ):
-        return ProductRepository.get_all_products(
-            db=db,
-            category_id=category_id,
-            is_active=is_active
-        )
+    def get_products(db: Session, category_id: Optional[int] = None, is_active: Optional[bool] = None):
+        return ProductRepository.get_all_products(db, category_id, is_active)
 
     @staticmethod
     def get_product_by_id(db: Session, product_id: int):
@@ -146,7 +138,6 @@ class ProductRepository:
     @staticmethod
     def get_product(db: Session, product_id: int):
         product = ProductRepository.get_product_by_id(db, product_id)
-
         if not product:
             return None, [], []
 
@@ -157,6 +148,8 @@ class ProductRepository:
 
     @staticmethod
     def create_product(db: Session, data, user_id: int):
+        gender_value = getattr(data, "gender", None) or "men"
+
         db.execute(text("""
             CALL sp_add_product(
                 :name,
@@ -169,6 +162,7 @@ class ProductRepository:
                 :tax_rate_id,
                 :is_active,
                 :created_by,
+                :gender,
                 NULL
             )
         """), {
@@ -181,14 +175,18 @@ class ProductRepository:
             "return_and_exchange": data.return_and_exchange,
             "tax_rate_id": getattr(data, "tax_rate_id", None),
             "is_active": data.is_active if data.is_active is not None else True,
-            "created_by": user_id
+            "created_by": user_id,
+            "gender": gender_value
         })
 
         db.commit()
 
-        return db.query(Product).filter(
+        # Fetch the created product to return it
+        product = db.query(Product).filter(
             Product.sku == data.sku
-        ).first()
+        ).order_by(Product.id.desc()).first()
+
+        return product
 
     @staticmethod
     def update_product(db: Session, product_id: int, data, user_id: int):
@@ -197,56 +195,57 @@ class ProductRepository:
         if not product:
             return None
 
-        if data.name is not None:
-            product.name = data.name
-        if data.description is not None:
-            product.description = data.description
-        if data.category_id is not None:
-            product.category_id = data.category_id
-        if data.sku is not None:
-            product.sku = data.sku
-        if data.is_active is not None:
-            product.is_active = data.is_active
-        if data.details_and_fit is not None:
-            product.details_and_fit = data.details_and_fit
-        if data.fabric_and_care is not None:
-            product.fabric_and_care = data.fabric_and_care
-        if data.return_and_exchange is not None:
-            product.return_and_exchange = data.return_and_exchange
-        if hasattr(data, "tax_rate_id") and data.tax_rate_id is not None:
-            product.tax_rate_id = data.tax_rate_id
+        gender_value = getattr(data, "gender", None) or product.gender
 
-        product.updated_by = user_id
+        db.execute(text("""
+            CALL sp_add_product(
+                :name,
+                :sku,
+                :category_id,
+                :description,
+                :details_and_fit,
+                :fabric_and_care,
+                :return_and_exchange,
+                :tax_rate_id,
+                :is_active,
+                :created_by,
+                :gender,
+                :product_id
+            )
+        """), {
+            "name": getattr(data, "name", product.name),
+            "sku": getattr(data, "sku", product.sku),
+            "category_id": getattr(data, "category_id", product.category_id),
+            "description": getattr(data, "description", product.description),
+            "details_and_fit": getattr(data, "details_and_fit", product.details_and_fit),
+            "fabric_and_care": getattr(data, "fabric_and_care", product.fabric_and_care),
+            "return_and_exchange": getattr(data, "return_and_exchange", product.return_and_exchange),
+            "tax_rate_id": getattr(data, "tax_rate_id", product.tax_rate_id),
+            "is_active": getattr(data, "is_active", product.is_active),
+            "created_by": user_id,
+            "gender": gender_value,
+            "product_id": product_id
+        })
 
         db.commit()
         db.refresh(product)
-
         return product
 
     @staticmethod
     def delete_product(db: Session, product_id: int):
         product = db.query(Product).filter(Product.id == product_id).first()
-
         if not product:
             return None
-
         product.is_deleted = True
-
         db.commit()
         db.refresh(product)
-
         return product
 
     @staticmethod
-    def toggle_bestseller(
-        db: Session,
-        product_id: int,
-        is_bestseller: bool,
-        user_id: int
-    ):
+    def toggle_bestseller(db: Session, product_id: int, is_bestseller: bool, user_id: int):
         result = db.execute(text("""
-            UPDATE product
-            SET
+            UPDATE product 
+            SET 
                 is_bestseller = :flag,
                 bestseller_marked_at = NOW(),
                 bestseller_marked_by = :uid,
@@ -259,7 +258,6 @@ class ProductRepository:
             "uid": user_id,
             "id": product_id
         })
-
         db.commit()
         return result.mappings().first()
 
@@ -293,68 +291,46 @@ class ProductRepository:
             price=data.price,
             stock=data.stock if data.stock is not None else 0,
             sku=data.sku,
-            color=getattr(data, "color", None),
             color_id=data.color_id,
             size=data.size,
             low_stock_threshold=data.low_stock_threshold if data.low_stock_threshold is not None else 5,
             created_by=user_id
         )
-
         db.add(variant)
         db.commit()
         db.refresh(variant)
-
         return variant
 
     @staticmethod
     def update_variant(db: Session, variant_id: int, data, user_id: int):
-        variant = db.query(ProductVariant).filter(
-            ProductVariant.id == variant_id
-        ).first()
-
+        variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
         if not variant:
             return None
 
-        if data.variant_name is not None:
-            variant.variant_name = data.variant_name
-        if data.price is not None:
-            variant.price = data.price
-        if data.stock is not None:
-            variant.stock = data.stock
-        if data.sku is not None:
-            variant.sku = data.sku
-        if hasattr(data, "color") and data.color is not None:
-            variant.color = data.color
-        if data.color_id is not None:
-            variant.color_id = data.color_id
-        if data.size is not None:
-            variant.size = data.size
-        if data.low_stock_threshold is not None:
-            variant.low_stock_threshold = data.low_stock_threshold
-        if hasattr(data, "is_deleted") and data.is_deleted is not None:
-            variant.is_deleted = data.is_deleted
+        update_fields = [
+            "variant_name", "price", "stock", "sku", 
+            "color_id", "size", "low_stock_threshold", "is_deleted"
+        ]
+        
+        for field in update_fields:
+            val = getattr(data, field, None)
+            if val is not None:
+                setattr(variant, field, val)
 
         variant.updated_by = user_id
-
         db.commit()
         db.refresh(variant)
-
         return variant
 
     @staticmethod
     def delete_variant(db: Session, variant_id: int):
-        variant = db.query(ProductVariant).filter(
-            ProductVariant.id == variant_id
-        ).first()
-
+        variant = db.query(ProductVariant).filter(ProductVariant.id == variant_id).first()
         if not variant:
             return None
 
         variant.is_deleted = True
-
         db.commit()
         db.refresh(variant)
-
         return variant
 
     # =====================================================
@@ -391,7 +367,6 @@ class ProductRepository:
                 "url": data.image_url,
                 "name": image_name
             })
-
             db.commit()
 
             return db.query(ProductImage).filter(
@@ -406,11 +381,9 @@ class ProductRepository:
             image_name=image_name,
             is_primary=False
         )
-
         db.add(image)
         db.commit()
         db.refresh(image)
-
         return image
 
     @staticmethod
@@ -419,16 +392,12 @@ class ProductRepository:
 
     @staticmethod
     def delete_image(db: Session, image_id: int):
-        image = db.query(ProductImage).filter(
-            ProductImage.id == image_id
-        ).first()
-
+        image = db.query(ProductImage).filter(ProductImage.id == image_id).first()
         if not image:
             return None
 
         db.delete(image)
         db.commit()
-
         return image
 
     # =====================================================

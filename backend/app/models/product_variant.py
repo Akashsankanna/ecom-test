@@ -73,10 +73,10 @@ class ProductVariant(Base):
     )
 
     # legacy/manual color text field kept from second file
-    color = Column(
-        String(50),
-        nullable=True
-    )
+    # color = Column(
+    #     String(50),
+    #     nullable=True
+    # )
 
     size = Column(
         String(10),

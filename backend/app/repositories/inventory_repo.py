@@ -93,7 +93,7 @@ class InventoryRepository:
         change_type,
         quantity,
         reference_id,
-        reference_type,
+        # reference_type,
         notes,
         user_id
     ):
@@ -102,7 +102,7 @@ class InventoryRepository:
             change_type=change_type,
             quantity=quantity,
             reference_id=reference_id,
-            reference_type=reference_type,
+            # reference_type=reference_type,
             notes=notes,
             created_by=user_id,
             updated_by=user_id
@@ -139,7 +139,7 @@ class InventoryRepository:
             change_type=data.change_type.value,
             quantity=data.quantity,
             reference_id=data.reference_id,
-            reference_type=ref_type,
+            # reference_type=ref_type,
             notes=data.notes,
             user_id=user_id
         )
@@ -173,7 +173,7 @@ class InventoryRepository:
             change_type=data.change_type.value,
             quantity=data.quantity,
             reference_id=data.reference_id,
-            reference_type=ref_type,
+            # reference_type=ref_type,
             notes=data.notes,
             user_id=user_id
         )
@@ -205,7 +205,7 @@ class InventoryRepository:
             change_type="ORDER",
             quantity=data.quantity,
             reference_id=data.reference_id,
-            reference_type="ORDER",
+            # reference_type="ORDER",
             notes=data.notes,
             user_id=user_id
         )
@@ -235,7 +235,7 @@ class InventoryRepository:
             change_type="ORDER_CANCELLED",
             quantity=data.quantity,
             reference_id=data.reference_id,
-            reference_type="ORDER",
+            # reference_type="ORDER",
             notes=data.notes,
             user_id=user_id
         )

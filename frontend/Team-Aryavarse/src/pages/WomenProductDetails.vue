@@ -303,44 +303,303 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { womenProducts } from 'src/data/womenProducts'
+import { api } from 'boot/axios'
 import { addToCart } from 'src/stores/shop'
 import sizeChartImg from 'src/assets/size_chart/size-chart.png'
 import measureImg from 'src/assets/size_chart/measure.png'
-//import ProductCustomization from 'components/ProductCustomization.vue'
+import ProductCustomization from 'components/Productcustomization.vue'
 
-//customization
+const route = useRoute()
+const router = useRouter()
+
+const product = ref(null)
+const loading = ref(false)
+
+const selectedImage = ref('')
+const displayImages = ref([])
+const imageDialog = ref(false)
+
+const selectedColorId = ref(null)
+const selectedColor = ref('')
+const selectedSize = ref('')
+const sizeError = ref(false)
+
+const quantity = ref(1)
 const customizationData = ref(null)
+const activeAccordion = ref(null)
+
+const sizeChartDialog = ref(false)
+const activeTab = ref('size')
+
+const pincode = ref('')
+const deliveryStatus = ref(null)
+const pincodeError = ref('')
+const isChecking = ref(false)
+
+const cartBtnRef = ref(null)
+const flyingImgRef = ref(null)
+const flyingVisible = ref(false)
+const flyingActive = ref(false)
+const flyingStyle = ref({})
+
+const normalizeProduct = (p) => {
+  const productId = Number(p.product_id || p.db_product_id || p.id)
+
+  const variants = Array.isArray(p.variants)
+    ? p.variants.map((v) => ({
+        id: Number(v.id || v.variant_id),
+        variant_id: Number(v.variant_id || v.id),
+        product_id: Number(v.product_id || productId),
+
+        size: v.size || '',
+        color_id: v.color_id ? Number(v.color_id) : null,
+        color: v.color || v.color_name || '',
+        color_name: v.color_name || v.color || '',
+        hex_code: v.hex_code || '',
+
+        price: Number(v.price || 0),
+        stock: Number(v.stock || 0),
+
+        image: v.image || v.image_url || p.image || p.image_url || '/favicon.ico',
+        image_url: v.image_url || v.image || p.image_url || p.image || '/favicon.ico'
+      }))
+    : []
+
+  const images = Array.isArray(p.images)
+    ? p.images
+        .map((img) => img.image_url || img.image)
+        .filter(Boolean)
+    : []
+
+  const colors = Array.isArray(p.colors)
+    ? p.colors.map((c) => ({
+        color_id: c.color_id ? Number(c.color_id) : null,
+        name: c.color_name || c.color || '',
+        color: c.color || c.color_name || '',
+        color_name: c.color_name || c.color || '',
+        hex: c.hex_code || '#cccccc',
+        hex_code: c.hex_code || '#cccccc'
+      }))
+    : [
+        ...new Map(
+          variants
+            .filter((v) => v.color_id)
+            .map((v) => [
+              v.color_id,
+              {
+                color_id: v.color_id,
+                name: v.color_name || v.color,
+                color: v.color,
+                color_name: v.color_name,
+                hex: v.hex_code || '#cccccc',
+                hex_code: v.hex_code || '#cccccc'
+              }
+            ])
+        ).values()
+      ]
+
+  const sizes = Array.isArray(p.sizes)
+    ? p.sizes
+    : [...new Set(variants.map((v) => v.size).filter(Boolean))]
+
+  const defaultVariant =
+    variants.find((v) => v.stock > 0) ||
+    variants[0] ||
+    null
+
+  const image =
+    defaultVariant?.image_url ||
+    images[0] ||
+    p.image_url ||
+    p.image ||
+    '/favicon.ico'
+
+  return {
+    id: productId,
+    product_id: productId,
+    db_product_id: productId,
+
+    title: p.title || p.name || 'Product',
+    name: p.name || p.title || 'Product',
+    description: p.description || '',
+
+    gender: String(p.gender || 'women').toLowerCase(),
+    category: p.category_name || p.category || 'Scrubs',
+    category_name: p.category_name || p.category || 'Scrubs',
+
+    fabric: p.fabric || 'Classic',
+    rating: p.rating || 4.8,
+
+    price: Number(defaultVariant?.price || p.price || 0),
+    oldPrice: p.oldPrice || p.old_price || null,
+
+    variant_id: defaultVariant?.variant_id || Number(p.variant_id || p.default_variant_id || 0),
+    color_id: defaultVariant?.color_id || p.color_id || null,
+    color: defaultVariant?.color || p.color || p.color_name || '',
+    color_name: defaultVariant?.color_name || p.color_name || p.color || '',
+    size: defaultVariant?.size || p.size || '',
+
+    stock: Number(defaultVariant?.stock || p.stock || 0),
+
+    image,
+    image_url: image,
+    images: images.length ? images : [image],
+
+    colors,
+    sizes,
+    variants,
+
+    details_and_fit: p.details_and_fit || '',
+    fabric_and_care: p.fabric_and_care || '',
+    return_and_exchange: p.return_and_exchange || '',
+
+    details: p.details_and_fit
+      ? String(p.details_and_fit).split('\n').filter(Boolean)
+      : [],
+
+    fabricDescription: p.fabric_and_care || 'Premium comfortable fabric.',
+    fabricCare: p.fabric_and_care
+      ? String(p.fabric_and_care).split('\n').filter(Boolean)
+      : [],
+
+    returnDescription: p.return_and_exchange || 'Easy return and exchange available.',
+    returnPoints: p.return_and_exchange
+      ? String(p.return_and_exchange).split('\n').filter(Boolean)
+      : []
+  }
+}
+
+const loadProductDetails = async () => {
+  try {
+    loading.value = true
+
+    const productId = Number(route.params.id)
+
+    const res = await api.get(`/products/${productId}`)
+
+    console.log('RAW WOMEN PRODUCT DETAILS:', res.data)
+
+    product.value = normalizeProduct(res.data)
+
+    if (product.value.images?.length) {
+      displayImages.value = [...product.value.images]
+      selectedImage.value = product.value.images[0]
+    }
+
+    if (product.value.colors?.length) {
+      selectedColorId.value = product.value.colors[0].color_id
+      selectedColor.value = product.value.colors[0].name
+    }
+
+    if (product.value.sizes?.length) {
+      selectedSize.value = product.value.sizes[0]
+    }
+
+    updateSelectedVariant()
+  } catch (err) {
+    console.error('WOMEN PRODUCT DETAILS LOAD ERROR:', err.response?.data || err)
+    product.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+const colorOptions = computed(() => {
+  return product.value?.colors || []
+})
+
+const sizes = computed(() => {
+  if (!product.value?.variants?.length) return []
+
+  if (!selectedColorId.value) {
+    return product.value.sizes || []
+  }
+
+  return [
+    ...new Set(
+      product.value.variants
+        .filter((v) => Number(v.color_id) === Number(selectedColorId.value))
+        .map((v) => v.size)
+        .filter(Boolean)
+    )
+  ]
+})
+
+const selectedVariant = computed(() => {
+  if (!product.value?.variants?.length) return null
+
+  return product.value.variants.find((v) =>
+    Number(v.color_id) === Number(selectedColorId.value) &&
+    String(v.size).toLowerCase() === String(selectedSize.value).toLowerCase()
+  ) || null
+})
+
+const updateSelectedVariant = () => {
+  const variant = selectedVariant.value
+  if (!variant || !product.value) return
+
+  product.value.variant_id = variant.variant_id
+  product.value.color_id = variant.color_id
+  product.value.color = variant.color
+  product.value.color_name = variant.color_name
+  product.value.size = variant.size
+  product.value.price = variant.price
+  product.value.stock = variant.stock
+
+  if (variant.image_url) {
+    selectedImage.value = variant.image_url
+  }
+}
+
+watch(selectedSize, () => {
+  sizeError.value = false
+  updateSelectedVariant()
+})
+
+watch(selectedColorId, () => {
+  const availableSizes = sizes.value
+
+  if (availableSizes.length && !availableSizes.includes(selectedSize.value)) {
+    selectedSize.value = availableSizes[0]
+  }
+
+  const colorImages = product.value?.variants
+    ?.filter((v) => Number(v.color_id) === Number(selectedColorId.value))
+    ?.map((v) => v.image_url)
+    ?.filter(Boolean)
+
+  if (colorImages?.length) {
+    displayImages.value = [...new Set(colorImages)]
+    selectedImage.value = displayImages.value[0]
+  }
+
+  updateSelectedVariant()
+})
+
+const changeColor = (colorName) => {
+  const colorObj = colorOptions.value.find(
+    (c) => String(c.name || c.color_name || c.color).toLowerCase().trim() ===
+      String(colorName).toLowerCase().trim()
+  )
+
+  if (!colorObj) return
+
+  selectedColorId.value = colorObj.color_id
+  selectedColor.value = colorObj.name || colorObj.color_name || colorObj.color
+}
+
+const discountPercent = computed(() => {
+  const p = product.value
+  if (!p?.oldPrice || !p?.price) return 0
+  return Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
+})
 
 const onCustomizationUpdated = (payload) => {
   customizationData.value = payload
   console.log('Customization:', payload)
 }
-
-// description
-const activeAccordion = ref(null)
-
-const route  = useRoute()
-const router = useRouter()
-
-// PRODUCT
-const product = computed(() =>
-  womenProducts.find(p => p.id === Number(route.params.id))
-)
-
-// IMAGES
-const selectedImage = ref('')
-const displayImages = ref([])
-const imageDialog   = ref(false)
-
-watch(product, (val) => {
-  if (val && val.images?.length) {
-    displayImages.value = [...val.images]
-    selectedImage.value = val.images[0]
-  }
-}, { immediate: true })
 
 const openImageDialog = () => {
   imageDialog.value = true
@@ -362,46 +621,6 @@ const nextImage = () => {
     imgs[(imgs.indexOf(selectedImage.value) + 1) % imgs.length]
 }
 
-// COLORS
-const colorOptions = computed(() => product.value?.colors || [])
-const selectedColor = ref('')
-
-watch(product, (val) => {
-  if (val?.colors?.length) {
-    selectedColor.value = val.colors[0].name
-  }
-}, { immediate: true })
-
-const changeColor = (colorName) => {
-  selectedColor.value = colorName
-
-  const colorObj = product.value?.colors?.find(
-    c => String(c.name || '').toLowerCase().trim() === String(colorName || '').toLowerCase().trim()
-  )
-
-  if (colorObj?.images?.length) {
-    displayImages.value = [...colorObj.images]
-    selectedImage.value = colorObj.images[0]
-  }
-}
-
-// PRICE
-const oldPrice = computed(() => product.value?.oldPrice)
-const discountPercent = computed(() => {
-  const p = product.value
-  if (!p?.oldPrice || !p?.price) return 0
-
-  return Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
-})
-
-// SIZE
-const sizes = ['XS','S','M','L','XL','2XL','3XL']
-const selectedSize = ref('')
-const sizeError = ref(false)
-
-// Qty
-const quantity = ref(1)
-
 const increaseQty = () => {
   quantity.value++
 }
@@ -409,16 +628,6 @@ const increaseQty = () => {
 const decreaseQty = () => {
   if (quantity.value > 1) quantity.value--
 }
-
-// SIZE CHART POPUP
-const sizeChartDialog = ref(false)
-const activeTab = ref('size')
-
-// PINCODE
-const pincode = ref('')
-const deliveryStatus = ref(null)
-const pincodeError = ref('')
-const isChecking = ref(false)
 
 const onPincodeInput = () => {
   if (pincode.value.length > 6) {
@@ -430,14 +639,14 @@ const onPincodeInput = () => {
 }
 
 const solapurPincodes = [
-  '413001','413002','413003','413004','413005',
-  '413006','413007','413101','413109','413112',
-  '413203','413212','413214','413215','413216',
-  '413219','413221','413222','413228','413253',
-  '413301','413303','413304','413305','413306',
-  '413307','413309','413310','413311','413314',
-  '413401','413402','413403','413406','413409',
-  '413410','413411'
+  '413001', '413002', '413003', '413004', '413005',
+  '413006', '413007', '413101', '413109', '413112',
+  '413203', '413212', '413214', '413215', '413216',
+  '413219', '413221', '413222', '413228', '413253',
+  '413301', '413303', '413304', '413305', '413306',
+  '413307', '413309', '413310', '413311', '413314',
+  '413401', '413402', '413403', '413406', '413409',
+  '413410', '413411'
 ]
 
 const checkPincode = () => {
@@ -469,13 +678,6 @@ const checkPincode = () => {
     isChecking.value = false
   }, 1200)
 }
-
-// FLYING CART ANIMATION
-const cartBtnRef = ref(null)
-const flyingImgRef = ref(null)
-const flyingVisible = ref(false)
-const flyingActive = ref(false)
-const flyingStyle = ref({})
 
 const triggerFlyAnimation = async () => {
   if (!cartBtnRef.value) return
@@ -518,11 +720,9 @@ const triggerFlyAnimation = async () => {
     setTimeout(() => {
       flyingVisible.value = false
     }, 1200)
-
   }, 50)
 }
 
-// ONLY OLD BACKEND CONNECTION LOGIC
 const handleAddToCart = async () => {
   try {
     if (!product.value) return
@@ -532,36 +732,19 @@ const handleAddToCart = async () => {
       return
     }
 
-    sizeError.value = false
+    const variant = selectedVariant.value
 
-    const selectedColorObj = product.value.colors?.find(
-      c => String(c.name || '').toLowerCase().trim() === String(selectedColor.value || '').toLowerCase().trim()
-    )
-
-    let variantId = selectedColorObj?.variant_id || product.value.variant_id
-
-    if (!variantId && product.value?.variants?.length) {
-      const matchedVariant = product.value.variants.find((variant) => {
-        const variantName = String(variant.variant_name || '').toLowerCase()
-        return (
-          variantName.includes(String(selectedSize.value).toLowerCase()) &&
-          variantName.includes(String(selectedColor.value).toLowerCase())
-        )
-      })
-
-      variantId = matchedVariant?.variant_id || matchedVariant?.id
-    }
-
-    if (!variantId) {
-      console.error('variant_id missing in womenProducts item:', {
-        product: product.value,
+    if (!variant?.variant_id) {
+      console.error('VARIANT NOT FOUND:', {
+        selectedColorId: selectedColorId.value,
         selectedColor: selectedColor.value,
-        selectedSize: selectedSize.value
+        selectedSize: selectedSize.value,
+        variants: product.value.variants
       })
       return
     }
 
-    await addToCart(Number(variantId), quantity.value)
+    await addToCart(Number(variant.variant_id), quantity.value)
     await triggerFlyAnimation()
   } catch (error) {
     console.error('HANDLE ADD TO CART ERROR:', error)
@@ -577,6 +760,10 @@ const handleBuyNow = async () => {
   await handleAddToCart()
   router.push('/cart')
 }
+
+onMounted(() => {
+  loadProductDetails()
+})
 </script>
 
 <style scoped lang="scss">

@@ -1,7 +1,10 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
+import { api } from 'boot/axios'
+
 import { womenProducts } from 'src/data/womenProducts'
 import { menProducts } from 'src/data/menProducts'
 import { apronsProducts } from 'src/data/apronsProducts'
+
 import {
   addToCartApi,
   getCartApi,
@@ -63,10 +66,9 @@ const resolveAssetImage = (imgPath) => {
 }
 
 const getFrontendImage = (item) => {
-  const backendName = String(item.product_name || item.title || '').trim().toLowerCase()
-  const backendVariant = String(item.variant_name || '').trim().toLowerCase()
+  const backendName = String(item.product_name || item.name || item.title || '').trim().toLowerCase()
+  const backendVariant = String(item.variant_name || item.color || '').trim().toLowerCase()
 
-  // 1. exact color variant_id match inside colors[]
   const byColorVariantId = allFrontendProducts.find((p) =>
     Array.isArray(p.colors) &&
     p.colors.some((c) => Number(c.variant_id) === Number(item.variant_id))
@@ -79,28 +81,27 @@ const getFrontendImage = (item) => {
     if (matchedColor?.images?.[0]) return matchedColor.images[0]
   }
 
-  // 2. exact top-level variant_id match
   const byVariantId = allFrontendProducts.find(
     (p) => Number(p.variant_id) === Number(item.variant_id)
   )
+
   if (byVariantId?.image) return byVariantId.image
 
-  // 3. exact title match
   const byExactName = allFrontendProducts.find(
-    (p) => String(p.title || '').trim().toLowerCase() === backendName
+    (p) => String(p.title || p.name || '').trim().toLowerCase() === backendName
   )
+
   if (byExactName?.image) return byExactName.image
 
-  // 4. loose title match
   const byLooseName = allFrontendProducts.find((p) => {
-    const title = String(p.title || '').trim().toLowerCase()
+    const title = String(p.title || p.name || '').trim().toLowerCase()
     return title.includes(backendName) || backendName.includes(title)
   })
+
   if (byLooseName?.image) return byLooseName.image
 
-  // 5. title + color/variant name match
   const byColorName = allFrontendProducts.find((p) => {
-    const title = String(p.title || '').trim().toLowerCase()
+    const title = String(p.title || p.name || '').trim().toLowerCase()
     const color = String(p.color || '').trim().toLowerCase()
 
     return (
@@ -108,28 +109,51 @@ const getFrontendImage = (item) => {
       (backendVariant.includes(color) || color.includes(backendVariant))
     )
   })
+
   if (byColorName?.image) return byColorName.image
 
   return ''
 }
 
 // ----------------------
-// CART (BACKEND)
+// AUTH HELPERS
+// ----------------------
+const getUserId = () => {
+  return localStorage.getItem('user_id')
+}
+
+const getGuestUuid = () => {
+  return localStorage.getItem('guest_uuid')
+}
+
+const getAuthParams = () => {
+  const userId = getUserId()
+  return userId ? `?user_id=${userId}` : ''
+}
+
+const getGuestHeaders = () => {
+  const guestUuid = getGuestUuid()
+
+  if (!getUserId() && guestUuid) {
+    return {
+      headers: {
+        'guest-uuid': guestUuid
+      }
+    }
+  }
+
+  return {}
+}
+
+// ----------------------
+// CART STATE
 // ----------------------
 export const cart = ref([])
 
 // ----------------------
-// WISHLIST (LOCAL SAME)
+// WISHLIST STATE - BACKEND
 // ----------------------
-export const wishlist = ref(JSON.parse(localStorage.getItem('wishlist') || '[]'))
-
-watch(
-  wishlist,
-  (val) => {
-    localStorage.setItem('wishlist', JSON.stringify(val))
-  },
-  { deep: true }
-)
+export const wishlist = ref([])
 
 // ----------------------
 // LOAD CART FROM BACKEND
@@ -150,23 +174,24 @@ export const loadCart = async () => {
         product_id: Number(item.product_id || 0),
         variant_id: Number(item.variant_id || 0),
 
-        product_name: item.product_name || '',
-        title: item.product_name || '',
+        product_name: item.product_name || item.name || '',
+        name: item.product_name || item.name || '',
+        title: item.product_name || item.name || '',
         variant_name: item.variant_name || '',
 
         price: Number(item.price || 0),
         customization_total: Number(item.customization_total || 0),
         line_total: Number(item.line_total || 0),
 
-        qty: Number(item.quantity || 1),
-        quantity: Number(item.quantity || 1),
+        qty: Number(item.quantity || item.qty || 1),
+        quantity: Number(item.quantity || item.qty || 1),
 
         stock: Number(item.stock || 0),
         size: item.size || '',
         color: item.color || '',
 
         image_url: finalImage,
-        image: finalImage,
+        image: finalImage
       }
     })
 
@@ -179,8 +204,8 @@ export const loadCart = async () => {
 }
 
 // ----------------------
-// ADD TO CART (BACKEND ONLY)
-// supports both:
+// ADD TO CART
+// supports:
 // 1) addToCart(variantId, quantity)
 // 2) addToCart(productObject)
 // ----------------------
@@ -194,10 +219,12 @@ export const addToCart = async (productOrVariantId, quantity = 1) => {
 
       qty = Number(product.qty || product.quantity || 1)
 
-      // first try direct product variant_id
-      variantId = product.variant_id
+      variantId =
+        product.variant_id ||
+        product.default_variant_id ||
+        product.selected_variant_id ||
+        null
 
-      // then try color-level variant_id
       if (!variantId && Array.isArray(product.colors) && product.color) {
         const matchedColor = product.colors.find(
           (c) =>
@@ -211,7 +238,7 @@ export const addToCart = async (productOrVariantId, quantity = 1) => {
       variantId = Number(productOrVariantId)
     }
 
-    if (!variantId) {
+    if (!variantId || Number(variantId) === 0) {
       console.error('ADD TO CART ERROR: variant_id missing', {
         input: productOrVariantId
       })
@@ -231,10 +258,7 @@ export const addToCart = async (productOrVariantId, quantity = 1) => {
 }
 
 // ----------------------
-// REMOVE FROM CART (BACKEND)
-// supports:
-// 1) removeFromCart(cartItemId)
-// 2) removeFromCart(productObject with id/cart_item_id)
+// REMOVE FROM CART
 // ----------------------
 export const removeFromCart = async (productOrCartItemId) => {
   try {
@@ -251,12 +275,13 @@ export const removeFromCart = async (productOrCartItemId) => {
     await removeCartItemApi(Number(cartItemId))
     await loadCart()
   } catch (err) {
-    console.error('REMOVE ERROR:', err)
+    console.error('REMOVE CART ERROR:', err)
     throw err
   }
 }
 
 // ----------------------
+// UPDATE CART QTY
 // ----------------------
 export const updateQty = async (productOrId, type) => {
   try {
@@ -264,6 +289,7 @@ export const updateQty = async (productOrId, type) => {
 
     if (typeof productOrId === 'object' && productOrId !== null) {
       const id = productOrId.cart_item_id || productOrId.id
+
       item = cart.value.find(
         (i) => Number(i.id) === Number(id) || Number(i.cart_item_id) === Number(id)
       )
@@ -280,6 +306,7 @@ export const updateQty = async (productOrId, type) => {
     let newQty = Number(item.qty || item.quantity || 1)
 
     if (type === 'inc') newQty++
+
     if (type === 'dec') {
       if (newQty > 1) {
         newQty--
@@ -298,29 +325,188 @@ export const updateQty = async (productOrId, type) => {
 }
 
 // ----------------------
-// WISHLIST (LOCAL SAME)
+// LOAD WISHLIST FROM BACKEND
 // ----------------------
-export const toggleWishlist = (product) => {
-  const exists = wishlist.value.find(item => item.id === product.id)
+export const loadWishlist = async () => {
+  try {
+    const params = getAuthParams()
+    const config = getGuestHeaders()
 
-  if (exists) {
-    wishlist.value = wishlist.value.filter(item => item.id !== product.id)
-  } else {
-    wishlist.value.push(product)
+    if (!getUserId() && !getGuestUuid()) {
+      wishlist.value = []
+      return
+    }
+
+    const res = await api.get(`/wishlist/${params}`, config)
+
+    const items = Array.isArray(res.data) ? res.data : []
+
+    wishlist.value = items.map((item) => {
+      const finalImage = resolveAssetImage(item.image_url || item.image || getFrontendImage(item))
+
+      return {
+        id: Number(item.wishlist_item_id || item.id || 0),
+        wishlist_item_id: Number(item.wishlist_item_id || item.id || 0),
+
+        product_id: Number(item.product_id || item.db_product_id || 0),
+        db_product_id: Number(item.product_id || item.db_product_id || 0),
+
+        variant_id: Number(item.variant_id || 0),
+
+        product_name: item.product_name || item.name || item.title || '',
+        name: item.name || item.product_name || item.title || '',
+        title: item.title || item.name || item.product_name || '',
+
+        description: item.description || '',
+
+        price: Number(item.price || 0),
+        size: item.size || '',
+        color: item.color || '',
+        hex_code: item.hex_code || '',
+        stock: Number(item.stock || 0),
+
+        image_url: finalImage,
+        image: finalImage
+      }
+    })
+
+    console.log('RAW WISHLIST API DATA:', res.data)
+    console.log('MAPPED WISHLIST:', wishlist.value)
+  } catch (err) {
+    console.error('LOAD WISHLIST ERROR:', err)
+    wishlist.value = []
   }
 }
 
-export const removeFromWishlist = (id) => {
-  wishlist.value = wishlist.value.filter(item => item.id !== id)
+// ----------------------
+// TOGGLE WISHLIST HEART
+// ----------------------
+export const toggleWishlist = async (product) => {
+  try {
+    const params = getAuthParams()
+    const config = getGuestHeaders()
+
+    if (!getUserId() && !getGuestUuid()) {
+      console.error('WISHLIST ERROR: user_id or guest_uuid missing')
+      return
+    }
+
+    const variantId =
+      product.variant_id ||
+      product.default_variant_id ||
+      product.selected_variant_id ||
+      null
+
+    if (!variantId || Number(variantId) === 0) {
+      console.error('WISHLIST ERROR: variant_id missing', product)
+      return
+    }
+
+    const exists = wishlist.value.some(
+      (item) => Number(item.variant_id) === Number(variantId)
+    )
+
+    if (exists) {
+      await api.delete(`/wishlist/remove${params}`, {
+        ...config,
+        data: {
+          variant_id: Number(variantId)
+        }
+      })
+    } else {
+      await api.post(
+        `/wishlist/add${params}`,
+        {
+          variant_id: Number(variantId)
+        },
+        config
+      )
+    }
+
+    await loadWishlist()
+  } catch (err) {
+    console.error('WISHLIST TOGGLE ERROR:', err)
+    throw err
+  }
 }
 
-export const isInWishlist = (id) => {
-  return wishlist.value.some(item => item.id === id)
+// ----------------------
+// REMOVE FROM WISHLIST
+// supports variant_id or item object
+// ----------------------
+export const removeFromWishlist = async (itemOrVariantId) => {
+  try {
+    const params = getAuthParams()
+    const config = getGuestHeaders()
+
+    let variantId = null
+
+    if (typeof itemOrVariantId === 'object' && itemOrVariantId !== null) {
+      variantId =
+        itemOrVariantId.variant_id ||
+        itemOrVariantId.default_variant_id ||
+        itemOrVariantId.selected_variant_id ||
+        null
+    } else {
+      variantId = itemOrVariantId
+    }
+
+    if (!variantId || Number(variantId) === 0) {
+      console.error('REMOVE WISHLIST ERROR: variant_id missing', itemOrVariantId)
+      return
+    }
+
+    await api.delete(`/wishlist/remove${params}`, {
+      ...config,
+      data: {
+        variant_id: Number(variantId)
+      }
+    })
+
+    await loadWishlist()
+  } catch (err) {
+    console.error('REMOVE WISHLIST ERROR:', err)
+    throw err
+  }
+}
+
+// ----------------------
+// CHECK HEART ACTIVE
+// supports product object or variant_id
+// ----------------------
+export const isInWishlist = (productOrVariantId) => {
+  let variantId = null
+
+  if (typeof productOrVariantId === 'object' && productOrVariantId !== null) {
+    variantId =
+      productOrVariantId.variant_id ||
+      productOrVariantId.default_variant_id ||
+      productOrVariantId.selected_variant_id ||
+      null
+  } else {
+    variantId = productOrVariantId
+  }
+
+  if (!variantId) return false
+
+  return wishlist.value.some(
+    (item) => Number(item.variant_id) === Number(variantId)
+  )
 }
 
 // ----------------------
 // CART COUNT
 // ----------------------
 export const cartCount = () => {
-  return cart.value.reduce((total, item) => total + Number(item.qty || item.quantity || 0), 0)
+  return cart.value.reduce(
+    (total, item) => total + Number(item.qty || item.quantity || 0),
+    0
+  )
+}
+
+// ----------------------
+// WISHLIST COUNT
+// ----------------------
+export const wishlistCount = () => {
+  return wishlist.value.length
 }

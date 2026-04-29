@@ -43,11 +43,11 @@ class User(Base):
         nullable=True
     )
 
-    # guest checkout / temporary visitor id
-    guest_id = Column(
-        UUID(as_uuid=True),
-        nullable=True
-    )
+    # # guest checkout / temporary visitor id
+    # guest_id = Column(
+    #     UUID(as_uuid=True),
+    #     nullable=True
+    # )
 
     keycloak_id = Column(
         Text,

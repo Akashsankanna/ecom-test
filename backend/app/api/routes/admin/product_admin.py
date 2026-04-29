@@ -124,6 +124,8 @@ def get_product(
         "category_id": product.category_id,
         "is_active": product.is_active,
         "is_deleted": product.is_deleted,
+        "gender": getattr(product, "gender", "men"),   # ← ADD THIS
+
         "details_and_fit": product.details_and_fit,
         "fabric_and_care": product.fabric_and_care,
         "return_and_exchange": product.return_and_exchange,

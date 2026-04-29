@@ -259,6 +259,7 @@ import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from 'boot/axios'
 import { addToCart } from 'src/stores/shop'
+import ProductCustomization from 'src/components/Productcustomization.vue'
 import sizeChartFallback from 'src/assets/size_chart/size-chart.png'
 import measureFallback from 'src/assets/size_chart/measure.png'
 
@@ -294,6 +295,23 @@ const flyingVisible = ref(false)
 const flyingActive = ref(false)
 const flyingStyle = ref({})
 
+const normalizeVariant = (v) => {
+  return {
+    ...v,
+    id: Number(v.id || v.variant_id),
+    variant_id: Number(v.variant_id || v.id),
+    product_id: Number(v.product_id),
+    color_id: v.color_id || null,
+    color: v.color || v.color_name || extractColorFromVariantName(v.variant_name),
+    color_name: v.color_name || v.color || extractColorFromVariantName(v.variant_name),
+    hex_code: v.hex_code || v.color_code || '#cccccc',
+    size: v.size || extractSizeFromVariantName(v.variant_name),
+    price: Number(v.price || 0),
+    stock: Number(v.stock || 0),
+    image_url: v.image_url || v.image || ''
+  }
+}
+
 const fetchProduct = async () => {
   try {
     loading.value = true
@@ -302,17 +320,25 @@ const fetchProduct = async () => {
     const response = await api.get(`/products/${productId}`)
     const data = response.data?.product || response.data?.data || response.data
 
+    const variants = Array.isArray(data.variants || data.product_variants)
+      ? (data.variants || data.product_variants).map(normalizeVariant)
+      : []
+
     product.value = {
       ...data,
-      id: data.id || productId,
+      id: Number(data.id || data.product_id || productId),
+      product_id: Number(data.product_id || data.id || productId),
+      db_product_id: Number(data.db_product_id || data.product_id || data.id || productId),
       title: data.title || data.name || 'Product',
       name: data.name || data.title || 'Product',
-      variants: data.variants || data.product_variants || []
+      image_url: data.image_url || data.image || '',
+      image: data.image || data.image_url || '',
+      variants
     }
 
     console.log('PRODUCT DETAILS:', product.value)
   } catch (error) {
-    console.error('PRODUCT FETCH ERROR:', error)
+    console.error('PRODUCT FETCH ERROR:', error.response?.data || error)
     product.value = null
   } finally {
     loading.value = false
@@ -365,11 +391,16 @@ const normalizedImages = computed(() => {
     })
   }
 
+  product.value.variants?.forEach(v => {
+    if (v.image_url) imgs.push(v.image_url)
+    if (v.image) imgs.push(v.image)
+  })
+
   if (product.value.image_url) imgs.push(product.value.image_url)
   if (product.value.product_image) imgs.push(product.value.product_image)
   if (product.value.image) imgs.push(product.value.image)
 
-  return imgs.filter(Boolean)
+  return [...new Set(imgs.filter(Boolean))]
 })
 
 const colorOptions = computed(() => {
@@ -384,11 +415,17 @@ const colorOptions = computed(() => {
       extractColorFromVariantName(variant.variant_name)
 
     if (colorName && !unique.has(colorName.toLowerCase())) {
+      const variantImages = []
+
+      if (variant.image_url) variantImages.push(variant.image_url)
+      if (variant.image) variantImages.push(variant.image)
+
       unique.set(colorName.toLowerCase(), {
         name: colorName,
-        hex: variant.color_code || '#cccccc',
-        variant_id: variant.id || variant.variant_id,
-        images: variant.images || []
+        color_id: variant.color_id || null,
+        hex: variant.hex_code || variant.color_code || '#cccccc',
+        variant_id: Number(variant.variant_id || variant.id),
+        images: variantImages.filter(Boolean)
       })
     }
   })
@@ -409,19 +446,27 @@ const sizes = computed(() => {
 const selectedVariant = computed(() => {
   if (!product.value?.variants?.length) return null
 
-  return product.value.variants.find((variant) => {
-    const name = String(variant.variant_name || '').toLowerCase()
+  const selectedColorText = String(selectedColor.value || '').toLowerCase().trim()
+  const selectedSizeText = String(selectedSize.value || '').toLowerCase().trim()
 
-    const sizeMatch =
-      !selectedSize.value ||
-      name.includes(String(selectedSize.value).toLowerCase())
+  const found = product.value.variants.find((variant) => {
+    const variantSize = String(
+      variant.size || extractSizeFromVariantName(variant.variant_name)
+    ).toLowerCase().trim()
 
-    const colorMatch =
-      !selectedColor.value ||
-      name.includes(String(selectedColor.value).toLowerCase())
+    const variantColor = String(
+      variant.color ||
+      variant.color_name ||
+      extractColorFromVariantName(variant.variant_name)
+    ).toLowerCase().trim()
+
+    const sizeMatch = !selectedSizeText || variantSize === selectedSizeText
+    const colorMatch = !selectedColorText || variantColor === selectedColorText
 
     return sizeMatch && colorMatch
-  }) || product.value.variants[0]
+  })
+
+  return found || product.value.variants[0]
 })
 
 const currentPrice = computed(() => {
@@ -443,11 +488,11 @@ const oldPrice = computed(() => {
 })
 
 const displayRating = computed(() => {
-  return Number(product.value?.rating || product.value?.avg_rating || 0).toFixed(1)
+  return Number(product.value?.rating || product.value?.avg_rating || 4.8).toFixed(1)
 })
 
 const ratingStars = computed(() => {
-  const rating = Math.round(Number(product.value?.rating || product.value?.avg_rating || 0))
+  const rating = Math.round(Number(product.value?.rating || product.value?.avg_rating || 4.8))
   return '★'.repeat(Math.max(0, Math.min(5, rating))) + '☆'.repeat(Math.max(0, 5 - rating))
 })
 
@@ -472,17 +517,17 @@ const accordionSections = computed(() => {
   return [
     {
       title: 'Details & Fit',
-      description: product.value.description || '',
+      description: product.value.details_and_fit || product.value.description || '',
       points: product.value.details || []
     },
     {
       title: 'Fabric & Care',
-      description: product.value.fabricDescription || product.value.fabric_description || '',
+      description: product.value.fabric_and_care || product.value.fabricDescription || product.value.fabric_description || '',
       points: product.value.fabricCare || product.value.fabric_care || []
     },
     {
       title: 'Return & Exchange',
-      description: product.value.returnDescription || product.value.return_description || '',
+      description: product.value.return_and_exchange || product.value.returnDescription || product.value.return_description || '',
       points: product.value.returnPoints || product.value.return_points || []
     }
   ].filter(section => section.description || section.points?.length)
@@ -574,7 +619,7 @@ const checkPincode = async () => {
       pincodeError.value = data.message || 'Sorry, delivery not available for this pincode'
     }
   } catch (error) {
-    console.error('PINCODE CHECK ERROR:', error)
+    console.error('PINCODE CHECK ERROR:', error.response?.data || error)
     pincodeError.value = 'Unable to check delivery right now'
   } finally {
     isChecking.value = false
@@ -635,24 +680,44 @@ const handleAddToCart = async () => {
 
     sizeError.value = false
 
-    const variantId =
-      selectedVariant.value?.id ||
+    const variantId = Number(
       selectedVariant.value?.variant_id ||
+      selectedVariant.value?.id ||
       product.value?.default_variant_id
+    )
 
     if (!variantId) {
       console.error('variant_id missing', {
         product: product.value,
+        selectedVariant: selectedVariant.value,
         selectedColor: selectedColor.value,
         selectedSize: selectedSize.value
       })
       return
     }
 
-    await addToCart(Number(variantId), quantity.value)
+    console.log('ADD TO CART PAYLOAD:', {
+      product_id: product.value.id,
+      variant_id: variantId,
+      color_id: selectedVariant.value?.color_id,
+      color: selectedVariant.value?.color || selectedVariant.value?.color_name,
+      size: selectedVariant.value?.size,
+      quantity: quantity.value
+    })
+
+    await addToCart({
+      product_id: product.value.id,
+      variant_id: variantId,
+      quantity: Number(quantity.value || 1),
+      color_id: selectedVariant.value?.color_id || null,
+      color: selectedVariant.value?.color || selectedVariant.value?.color_name || '',
+      size: selectedVariant.value?.size || '',
+      customization: customizationData.value || null
+    })
+
     await triggerFlyAnimation()
   } catch (error) {
-    console.error('HANDLE ADD TO CART ERROR:', error)
+    console.error('HANDLE ADD TO CART ERROR:', error.response?.data || error)
   }
 }
 
@@ -668,16 +733,29 @@ const handleBuyNow = async () => {
 
 function extractSizeFromVariantName(name = '') {
   const text = String(name).toUpperCase()
-  const sizeList = ['3XL', '2XL', 'XL', 'XS', 'S', 'M', 'L', '4XL', '5XL', '2XS', '3XS']
+  const sizeList = ['5XL', '4XL', '3XL', '2XL', 'XL', 'L', 'M', 'S', 'XS', '2XS', '3XS']
   return sizeList.find(size => text.includes(size)) || ''
 }
 
 function extractColorFromVariantName(name = '') {
   const knownColors = [
-    'Soft Blue+Grey', 'Navy Blue', 'Dark Grey', 'Mint Green',
-    'Mustard Yellow', 'Dark Green', 'Dust Pink',
-    'Black', 'White', 'Blue', 'Navy', 'Green', 'Grey',
-    'Maroon', 'Brown', 'Tan', 'Yellow'
+    'Soft Blue+Grey',
+    'Navy Blue',
+    'Dark Grey',
+    'Mint Green',
+    'Mustard Yellow',
+    'Dark Green',
+    'Dust Pink',
+    'Black',
+    'White',
+    'Blue',
+    'Navy',
+    'Green',
+    'Grey',
+    'Maroon',
+    'Brown',
+    'Tan',
+    'Yellow'
   ]
 
   const lowerName = String(name).toLowerCase()
