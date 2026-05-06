@@ -28,7 +28,9 @@ class OrderRepository:
             query = query.filter(Order.status == status.upper())
 
         if payment_status:
-            query = query.filter(Order.payment_status == payment_status.upper())
+            query = query.filter(
+                Order.payment_status == payment_status.upper()
+            )
 
         if user_id:
             query = query.filter(Order.user_id == user_id)
@@ -36,11 +38,21 @@ class OrderRepository:
         return query.order_by(Order.created_at.desc()).all()
 
     @staticmethod
-    def get_order_by_id(db: Session, order_id: int) -> Optional[Order]:
-        return db.query(Order).filter(Order.id == order_id).first()
+    def get_order_by_id(
+        db: Session,
+        order_id: int
+    ) -> Optional[Order]:
+        return (
+            db.query(Order)
+            .filter(Order.id == order_id)
+            .first()
+        )
 
     @staticmethod
-    def get_orders_by_user(db: Session, user_id: int) -> List[Order]:
+    def get_orders_by_user(
+        db: Session,
+        user_id: int
+    ) -> List[Order]:
         return (
             db.query(Order)
             .filter(Order.user_id == user_id)
@@ -49,8 +61,176 @@ class OrderRepository:
         )
 
     @staticmethod
-    def update_order_status(db: Session, order_id: int, new_status: str) -> Optional[Order]:
-        # Supports latest stored procedure parameter names
+    def get_order_items(
+        db: Session,
+        order_id: int
+    ) -> List[OrderItem]:
+        return (
+            db.query(OrderItem)
+            .filter(OrderItem.order_id == order_id)
+            .all()
+        )
+
+    @staticmethod
+    def get_order_detail_full(db: Session, order_id: int) -> dict:
+        """
+        Returns a fully joined order detail using DB views/raw SQL
+        matching the actual schema. Includes user info, items with
+        product names, address, shipment, and status history.
+        """
+        # Order + user + address
+        order_row = db.execute(
+            text("""
+                SELECT
+                    o.id,
+                    o.user_id,
+                    o.total_amount,
+                    o.gross_amount,
+                    o.final_amount,
+                    o.status,
+                    o.payment_status,
+                    o.address_id,
+                    o.coupon_id,
+                    o.coupon_discount_amount,
+                    o.additional_discount_amount,
+                    o.discount_reason,
+                    o.transaction_id,
+                    o.created_at,
+                    o.updated_at,
+                    u.name        AS customer_name,
+                    u.email       AS customer_email,
+                    u.phone       AS customer_phone,
+                    a.full_name   AS address_full_name,
+                    a.phone       AS address_phone,
+                    a.address_line1,
+                    a.address_line2,
+                    a.landmark,
+                    a.city,
+                    a.state,
+                    a.country,
+                    a.postal_code,
+                    a.address_type
+                FROM orders o
+                LEFT JOIN users  u ON u.id = o.user_id
+                LEFT JOIN address a ON a.id = o.address_id
+                WHERE o.id = :order_id
+            """),
+            {"order_id": order_id}
+        ).mappings().first()
+
+        if not order_row:
+            return None
+
+        # Items with product + variant info
+        items = db.execute(
+            text("""
+                SELECT
+                    oi.id,
+                    oi.order_id,
+                    oi.variant_id,
+                    oi.product_id,
+                    oi.quantity,
+                    oi.price,
+                    oi.customization_total,
+                    oi.created_at,
+                    p.name          AS product_name,
+                    p.slug          AS product_slug,
+                    pv.variant_name,
+                    pv.sku,
+                    pv.size,
+                    c.name          AS color_name,
+                    c.hex_code      AS color_hex,
+                    pi.image_url    AS product_image
+                FROM order_items oi
+                LEFT JOIN product         p  ON p.id  = oi.product_id
+                LEFT JOIN product_variant pv ON pv.id = oi.variant_id
+                LEFT JOIN color           c  ON c.id  = pv.color_id
+                LEFT JOIN product_image   pi ON pi.product_id = p.id
+                                             AND pi.is_primary = TRUE
+                WHERE oi.order_id = :order_id
+                ORDER BY oi.id
+            """),
+            {"order_id": order_id}
+        ).mappings().all()
+
+        # Shipment
+        shipment = db.execute(
+            text("""
+                SELECT
+                    id,
+                    order_id,
+                    courier_name,
+                    tracking_number,
+                    shipment_status,
+                    tracking_url,
+                    shipping_label_url,
+                    estimated_delivery,
+                    shipped_at,
+                    delivered_at,
+                    created_at,
+                    updated_at
+                FROM shipment
+                WHERE order_id = :order_id
+                LIMIT 1
+            """),
+            {"order_id": order_id}
+        ).mappings().first()
+
+        # Status history
+        history = db.execute(
+            text("""
+                SELECT
+                    osh.id,
+                    osh.order_id,
+                    osh.status,
+                    osh.changed_by,
+                    osh.remarks,
+                    osh.changed_at,
+                    u.name AS changed_by_name
+                FROM order_status_history osh
+                LEFT JOIN users u ON u.id = osh.changed_by
+                WHERE osh.order_id = :order_id
+                ORDER BY osh.changed_at ASC
+            """),
+            {"order_id": order_id}
+        ).mappings().all()
+
+        # Transaction
+        transaction = db.execute(
+            text("""
+                SELECT
+                    id,
+                    order_id,
+                    amount,
+                    payment_method,
+                    status,
+                    transaction_ref,
+                    payment_gateway,
+                    gateway_transaction_id,
+                    currency,
+                    created_at
+                FROM transactions
+                WHERE order_id = :order_id
+                ORDER BY created_at DESC
+                LIMIT 1
+            """),
+            {"order_id": order_id}
+        ).mappings().first()
+
+        return {
+            "order": dict(order_row),
+            "items": [dict(i) for i in items],
+            "shipment": dict(shipment) if shipment else None,
+            "status_history": [dict(h) for h in history],
+            "transaction": dict(transaction) if transaction else None,
+        }
+
+    @staticmethod
+    def update_order_status(
+        db: Session,
+        order_id: int,
+        new_status: str
+    ) -> Optional[Order]:
         db.execute(
             text("CALL sp_update_order_status(:p_order_id, :p_new_status)"),
             {
@@ -60,30 +240,30 @@ class OrderRepository:
         )
         db.commit()
         db.expire_all()
-
         return db.query(Order).filter(Order.id == order_id).first()
 
     @staticmethod
-    def cancel_order(db: Session, order_id: int) -> Optional[Order]:
+    def cancel_order(
+        db: Session,
+        order_id: int
+    ) -> Optional[Order]:
         db.execute(
             text("CALL sp_cancel_order(:p_order_id)"),
             {"p_order_id": order_id}
         )
         db.commit()
         db.expire_all()
-
         return db.query(Order).filter(Order.id == order_id).first()
-
-    @staticmethod
-    def get_order_items(db: Session, order_id: int) -> List[OrderItem]:
-        return db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
 
     # =====================================================
     # ORDER STATUS HISTORY
     # =====================================================
 
     @staticmethod
-    def get_order_status_history(db: Session, order_id: int):
+    def get_order_status_history(
+        db: Session,
+        order_id: int
+    ) -> List[OrderStatusHistory]:
         return (
             db.query(OrderStatusHistory)
             .filter(OrderStatusHistory.order_id == order_id)
@@ -96,20 +276,39 @@ class OrderRepository:
     # =====================================================
 
     @staticmethod
-    def create_shipment(db: Session, order_id: int, data) -> Optional[Shipment]:
+    def create_shipment(
+        db: Session,
+        order_id: int,
+        data
+    ) -> Optional[Shipment]:
         db.execute(
-            text("CALL sp_create_shipment(:oid, :courier, :tracking, :est)"),
+            text(
+                "CALL sp_create_shipment(:oid, :courier, :tracking, :est)"
+            ),
             {
-                "oid": order_id,
-                "courier": data.courier_name,
+                "oid":      order_id,
+                "courier":  data.courier_name,
                 "tracking": data.tracking_number,
-                "est": data.estimated_delivery,
+                "est":      data.estimated_delivery,
             }
         )
+        # Set tracking_url if provided (sp doesn't handle it)
         db.commit()
         db.expire_all()
 
-        return db.query(Shipment).filter(Shipment.order_id == order_id).first()
+        shipment = (
+            db.query(Shipment)
+            .filter(Shipment.order_id == order_id)
+            .first()
+        )
+
+        # Update tracking_url if provided
+        if shipment and hasattr(data, "tracking_url") and data.tracking_url:
+            shipment.tracking_url = data.tracking_url
+            db.commit()
+            db.refresh(shipment)
+
+        return shipment
 
     @staticmethod
     def update_shipment_status(
@@ -121,12 +320,11 @@ class OrderRepository:
             text("CALL sp_update_shipment_status(:tracking, :status)"),
             {
                 "tracking": tracking_number,
-                "status": status.upper()
+                "status":   status.upper()
             }
         )
         db.commit()
         db.expire_all()
-
         return (
             db.query(Shipment)
             .filter(Shipment.tracking_number == tracking_number)
@@ -134,8 +332,15 @@ class OrderRepository:
         )
 
     @staticmethod
-    def get_shipment_by_order(db: Session, order_id: int) -> Optional[Shipment]:
-        return db.query(Shipment).filter(Shipment.order_id == order_id).first()
+    def get_shipment_by_order(
+        db: Session,
+        order_id: int
+    ) -> Optional[Shipment]:
+        return (
+            db.query(Shipment)
+            .filter(Shipment.order_id == order_id)
+            .first()
+        )
 
     @staticmethod
     def get_shipment_by_tracking(
@@ -159,23 +364,25 @@ class OrderRepository:
         data
     ) -> Optional[ReturnRequest]:
         db.execute(
-            text("CALL sp_create_return_request(:order_id, :item_id, :user_id, :qty, :reason)"),
+            text(
+                "CALL sp_create_return_request("
+                ":order_id, :item_id, :user_id, :qty, :reason)"
+            ),
             {
                 "order_id": data.order_id,
-                "item_id": data.order_item_id,
-                "user_id": user_id,
-                "qty": data.quantity,
-                "reason": data.reason,
+                "item_id":  data.order_item_id,
+                "user_id":  user_id,
+                "qty":      data.quantity,
+                "reason":   data.reason,
             }
         )
         db.commit()
         db.expire_all()
-
         return (
             db.query(ReturnRequest)
             .filter(
                 ReturnRequest.order_id == data.order_id,
-                ReturnRequest.user_id == user_id
+                ReturnRequest.user_id  == user_id
             )
             .order_by(ReturnRequest.created_at.desc())
             .first()
@@ -185,12 +392,12 @@ class OrderRepository:
     def get_all_return_requests(
         db: Session,
         status: Optional[str] = None
-    ):
+    ) -> List[ReturnRequest]:
         query = db.query(ReturnRequest)
-
         if status:
-            query = query.filter(ReturnRequest.status == status.upper())
-
+            query = query.filter(
+                ReturnRequest.status == status.upper()
+            )
         return query.order_by(ReturnRequest.created_at.desc()).all()
 
     @staticmethod
@@ -198,7 +405,11 @@ class OrderRepository:
         db: Session,
         return_id: int
     ) -> Optional[ReturnRequest]:
-        return db.query(ReturnRequest).filter(ReturnRequest.id == return_id).first()
+        return (
+            db.query(ReturnRequest)
+            .filter(ReturnRequest.id == return_id)
+            .first()
+        )
 
     @staticmethod
     def approve_return_request(
@@ -209,29 +420,33 @@ class OrderRepository:
         db.execute(
             text("CALL sp_approve_return_request(:rid, :method)"),
             {
-                "rid": return_id,
+                "rid":    return_id,
                 "method": refund_method.upper()
             }
         )
         db.commit()
         db.expire_all()
-
-        return db.query(ReturnRequest).filter(ReturnRequest.id == return_id).first()
+        return (
+            db.query(ReturnRequest)
+            .filter(ReturnRequest.id == return_id)
+            .first()
+        )
 
     @staticmethod
     def reject_return_request(
         db: Session,
         return_id: int
     ) -> Optional[ReturnRequest]:
-        rr = db.query(ReturnRequest).filter(ReturnRequest.id == return_id).first()
-
+        rr = (
+            db.query(ReturnRequest)
+            .filter(ReturnRequest.id == return_id)
+            .first()
+        )
         if not rr:
             return None
-
         rr.status = "REJECTED"
         db.commit()
         db.refresh(rr)
-
         return rr
 
     @staticmethod
@@ -245,26 +460,33 @@ class OrderRepository:
         )
         db.commit()
         db.expire_all()
-
-        return db.query(ReturnRequest).filter(ReturnRequest.id == return_id).first()
+        return (
+            db.query(ReturnRequest)
+            .filter(ReturnRequest.id == return_id)
+            .first()
+        )
 
     # =====================================================
     # EXCHANGE REQUESTS
     # =====================================================
 
     @staticmethod
-    def create_exchange(db: Session, data) -> Optional[ExchangeRequest]:
+    def create_exchange(
+        db: Session,
+        data
+    ) -> Optional[ExchangeRequest]:
         db.execute(
-            text("CALL sp_create_exchange(:oid, :oi_id, :reason)"),
+            text(
+                "CALL sp_create_exchange(:oid, :oi_id, :reason)"
+            ),
             {
-                "oid": data.order_id,
-                "oi_id": data.order_item_id,
+                "oid":    data.order_id,
+                "oi_id":  data.order_item_id,
                 "reason": data.reason,
             }
         )
         db.commit()
         db.expire_all()
-
         return (
             db.query(ExchangeRequest)
             .filter(ExchangeRequest.order_id == data.order_id)
@@ -273,12 +495,15 @@ class OrderRepository:
         )
 
     @staticmethod
-    def get_all_exchanges(db: Session, status: Optional[str] = None):
+    def get_all_exchanges(
+        db: Session,
+        status: Optional[str] = None
+    ) -> List[ExchangeRequest]:
         query = db.query(ExchangeRequest)
-
         if status:
-            query = query.filter(ExchangeRequest.status == status.upper())
-
+            query = query.filter(
+                ExchangeRequest.status == status.upper()
+            )
         return query.order_by(ExchangeRequest.created_at.desc()).all()
 
     @staticmethod
@@ -286,9 +511,11 @@ class OrderRepository:
         db: Session,
         exchange_id: int
     ) -> Optional[ExchangeRequest]:
-        return db.query(ExchangeRequest).filter(
-            ExchangeRequest.id == exchange_id
-        ).first()
+        return (
+            db.query(ExchangeRequest)
+            .filter(ExchangeRequest.id == exchange_id)
+            .first()
+        )
 
     @staticmethod
     def update_exchange_status(
@@ -299,16 +526,17 @@ class OrderRepository:
         db.execute(
             text("CALL sp_update_exchange_status(:ex_id, :status)"),
             {
-                "ex_id": exchange_id,
+                "ex_id":  exchange_id,
                 "status": new_status.upper()
             }
         )
         db.commit()
         db.expire_all()
-
-        return db.query(ExchangeRequest).filter(
-            ExchangeRequest.id == exchange_id
-        ).first()
+        return (
+            db.query(ExchangeRequest)
+            .filter(ExchangeRequest.id == exchange_id)
+            .first()
+        )
 
     @staticmethod
     def complete_exchange(
@@ -319,16 +547,17 @@ class OrderRepository:
         db.execute(
             text("CALL sp_complete_exchange(:ex_id, :new_variant)"),
             {
-                "ex_id": exchange_id,
+                "ex_id":       exchange_id,
                 "new_variant": new_variant_id
             }
         )
         db.commit()
         db.expire_all()
-
-        return db.query(ExchangeRequest).filter(
-            ExchangeRequest.id == exchange_id
-        ).first()
+        return (
+            db.query(ExchangeRequest)
+            .filter(ExchangeRequest.id == exchange_id)
+            .first()
+        )
 
     # =====================================================
     # ANALYTICS / VIEWS
@@ -341,14 +570,16 @@ class OrderRepository:
     ):
         if order_id:
             result = db.execute(
-                text("SELECT * FROM order_tracking_view WHERE id = :oid"),
+                text(
+                    "SELECT * FROM order_tracking_view "
+                    "WHERE id = :oid"
+                ),
                 {"oid": order_id}
             )
         else:
             result = db.execute(
                 text("SELECT * FROM order_tracking_view")
             )
-
         return [dict(row) for row in result.mappings()]
 
     @staticmethod
@@ -358,14 +589,16 @@ class OrderRepository:
     ):
         if order_id:
             result = db.execute(
-                text("SELECT * FROM order_view WHERE order_id = :oid"),
+                text(
+                    "SELECT * FROM order_view "
+                    "WHERE order_id = :oid"
+                ),
                 {"oid": order_id}
             )
         else:
             result = db.execute(
                 text("SELECT * FROM order_view LIMIT 100")
             )
-
         return [dict(row) for row in result.mappings()]
 
     @staticmethod
@@ -401,16 +634,17 @@ class OrderRepository:
         reason: str
     ) -> Optional[Order]:
         db.execute(
-            text("CALL sp_apply_additional_discount(:oid, :amt, :reason)"),
+            text(
+                "CALL sp_apply_additional_discount(:oid, :amt, :reason)"
+            ),
             {
-                "oid": order_id,
-                "amt": discount_amount,
+                "oid":    order_id,
+                "amt":    discount_amount,
                 "reason": reason
             }
         )
         db.commit()
         db.expire_all()
-
         return db.query(Order).filter(Order.id == order_id).first()
 
     @staticmethod
@@ -423,16 +657,106 @@ class OrderRepository:
         additional_discount: float = 0
     ) -> Optional[Order]:
         db.execute(
-            text("CALL sp_apply_coupon(:code, :uid, :oid, :amount, :extra_disc)"),
+            text(
+                "CALL sp_apply_coupon("
+                ":code, :uid, :oid, :amount, :extra_disc)"
+            ),
             {
-                "code": coupon_code.upper(),
-                "uid": user_id,
-                "oid": order_id,
-                "amount": order_amount,
+                "code":       coupon_code.upper(),
+                "uid":        user_id,
+                "oid":        order_id,
+                "amount":     order_amount,
                 "extra_disc": additional_discount
             }
         )
         db.commit()
         db.expire_all()
-
         return db.query(Order).filter(Order.id == order_id).first()
+
+    # =====================================================
+    # USER-SIDE: orders with items (for My Orders page)
+    # =====================================================
+
+    @staticmethod
+    def get_user_orders_full(db: Session, user_id: int) -> list:
+        """
+        Returns orders with items, product names, images, and
+        shipment status — everything needed for the user My Orders page.
+        Matches EXACTLY the DB schema fields.
+        """
+        orders = db.execute(
+            text("""
+                SELECT
+                    o.id,
+                    o.user_id,
+                    o.total_amount,
+                    o.gross_amount,
+                    o.final_amount,
+                    o.status,
+                    o.payment_status,
+                    o.address_id,
+                    o.coupon_discount_amount,
+                    o.additional_discount_amount,
+                    o.transaction_id,
+                    o.created_at,
+                    o.updated_at
+                FROM orders o
+                WHERE o.user_id = :user_id
+                ORDER BY o.created_at DESC
+            """),
+            {"user_id": user_id}
+        ).mappings().all()
+
+        result = []
+        for order in orders:
+            items = db.execute(
+                text("""
+                    SELECT
+                        oi.id,
+                        oi.order_id,
+                        oi.variant_id,
+                        oi.product_id,
+                        oi.quantity,
+                        oi.price,
+                        oi.customization_total,
+                        p.name          AS product_name,
+                        pv.variant_name,
+                        pv.sku,
+                        pv.size,
+                        c.name          AS color_name,
+                        pi.image_url    AS product_image
+                    FROM order_items oi
+                    LEFT JOIN product         p  ON p.id  = oi.product_id
+                    LEFT JOIN product_variant pv ON pv.id = oi.variant_id
+                    LEFT JOIN color           c  ON c.id  = pv.color_id
+                    LEFT JOIN product_image   pi
+                        ON pi.product_id = p.id AND pi.is_primary = TRUE
+                    WHERE oi.order_id = :order_id
+                    ORDER BY oi.id
+                """),
+                {"order_id": order["id"]}
+            ).mappings().all()
+
+            shipment = db.execute(
+                text("""
+                    SELECT
+                        courier_name,
+                        tracking_number,
+                        shipment_status,
+                        tracking_url,
+                        estimated_delivery,
+                        shipped_at,
+                        delivered_at
+                    FROM shipment
+                    WHERE order_id = :order_id
+                    LIMIT 1
+                """),
+                {"order_id": order["id"]}
+            ).mappings().first()
+
+            order_dict = dict(order)
+            order_dict["items"]    = [dict(i) for i in items]
+            order_dict["shipment"] = dict(shipment) if shipment else None
+            result.append(order_dict)
+
+        return result

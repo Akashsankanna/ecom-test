@@ -235,10 +235,15 @@
     </q-dialog>
   </q-page>
 </template>
-
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { Notify } from 'quasar'
+import orderService from '../../services/orderService'
 
+const route = useRoute()
+
+// ───── STATE ─────
 const tab = ref('all')
 const search = ref('')
 const confirmDialog = ref(false)
@@ -246,169 +251,120 @@ const confirmAction = ref('')
 const confirmTarget = ref(null)
 const rejectReason = ref('')
 const actionLoading = ref(false)
-const toastVisible = ref(false)
-const toastMessage = ref('')
-const toastIcon = ref('check_circle')
-const toastColor = ref('positive')
 
-// ── Data ──────────────────────────────────────────────────────
-const returns = ref([
-  {
-    id: 'RET-001',
-    order_id: '#ORD-1001',
-    customer_email: 'rahul@example.com',
-    product: 'Wireless Earbuds Pro',
-    refund_amount: 2400,
-    reason: 'Product not working as described',
-    status: 'pending',
-    created_at: '2024-01-16',
-    loading: false,
-  },
-  {
-    id: 'RET-002',
-    order_id: '#ORD-1003',
-    customer_email: 'ankit@example.com',
-    product: 'Running Shoes X1',
-    refund_amount: 3499,
-    reason: 'Wrong size delivered',
-    status: 'approved',
-    created_at: '2024-01-15',
-    loading: false,
-  },
-  {
-    id: 'RET-003',
-    order_id: '#ORD-1005',
-    customer_email: 'vikram@example.com',
-    product: 'Mechanical Keyboard',
-    refund_amount: 5999,
-    reason: 'Duplicate order placed by mistake',
-    status: 'pending',
-    created_at: '2024-01-14',
-    loading: false,
-  },
-  {
-    id: 'RET-004',
-    order_id: '#ORD-1002',
-    customer_email: 'priya@example.com',
-    product: 'Cotton T-Shirt',
-    refund_amount: 1199,
-    reason: 'Quality not as shown in image',
-    status: 'rejected',
-    created_at: '2024-01-13',
-    loading: false,
-  },
-  {
-    id: 'RET-005',
-    order_id: '#ORD-1007',
-    customer_email: 'karan@example.com',
-    product: 'Python Book',
-    refund_amount: 499,
-    reason: 'Pages missing in book',
-    status: 'refunded',
-    created_at: '2024-01-12',
-    loading: false,
-  },
-])
+const returns = ref([])
 
-// ── Columns — all required fields ─────────────────────────────
-const cols = [
-  { name: 'id', label: 'Return ID', field: 'id', align: 'left', sortable: true },
-  { name: 'order_id', label: 'Order ID', field: 'order_id', align: 'left' },
-  { name: 'customer_email', label: 'Customer Email', field: 'customer_email', align: 'left' },
-  { name: 'product', label: 'Product', field: 'product', align: 'left' },
-  { name: 'reason', label: 'Reason', field: 'reason', align: 'left' },
-  {
-    name: 'refund_amount',
-    label: 'Refund Amount',
-    field: 'refund_amount',
-    align: 'left',
-    sortable: true,
-  },
-  { name: 'status', label: 'Status', field: 'status', align: 'left' },
-  { name: 'created_at', label: 'Date', field: 'created_at', align: 'left' },
-  { name: 'actions', label: 'Actions', field: 'id', align: 'left' },
-]
+// ───── FETCH RETURNS ─────
+const fetchReturns = async () => {
+  try {
+    const res = await orderService.getAllReturns?.() // if exists
+    returns.value = res || []
+  } catch (err) {
+    console.error(err)
+    Notify.create({
+      type: 'negative',
+      message: 'Failed to load returns'
+    })
+  }
+}
 
-// ── Filtered rows ─────────────────────────────────────────────
+// ───── AUTO CREATE RETURN FROM ORDER PAGE ─────
+onMounted(async () => {
+  await fetchReturns()
+
+  if (route.query.order_id) {
+    const orderId = route.query.order_id
+
+    try {
+      await orderService.createReturnRequest({
+        order_id: orderId,
+        reason: 'Customer requested return',
+        refund_method: 'ORIGINAL'
+      })
+
+      Notify.create({
+        type: 'positive',
+        message: `Return created for Order #${orderId}`
+      })
+
+      await fetchReturns()
+
+    } catch (err) {
+      Notify.create({
+        type: 'negative',
+        message: err?.message || 'Failed to create return'
+      })
+    }
+  }
+})
+
+// ───── FILTER ─────
 const filteredReturns = computed(() =>
   returns.value.filter((r) => {
     const ms =
       !search.value ||
-      r.id.toLowerCase().includes(search.value.toLowerCase()) ||
-      r.order_id.toLowerCase().includes(search.value.toLowerCase()) ||
-      r.customer_email.toLowerCase().includes(search.value.toLowerCase())
+      r.id?.toLowerCase().includes(search.value.toLowerCase()) ||
+      String(r.order_id).includes(search.value) ||
+      (r.customer_email || '').toLowerCase().includes(search.value.toLowerCase())
+
     return ms && (tab.value === 'all' || r.status === tab.value)
-  }),
+  })
 )
 
-// ── Summary cards ─────────────────────────────────────────────
-const pendingCount = computed(() => returns.value.filter((r) => r.status === 'pending').length)
+// ───── SUMMARY ─────
+const pendingCount = computed(() =>
+  returns.value.filter((r) => r.status === 'pending').length
+)
+
 const summary = computed(() => [
   {
     label: 'Total Returns',
     value: returns.value.length,
     icon: 'assignment_return',
     color: 'blue-4',
-    bg: 'rgba(59,130,246,.12)',
+    bg: 'rgba(59,130,246,.12)'
   },
   {
     label: 'Pending',
     value: pendingCount.value,
     icon: 'pending',
     color: 'amber-4',
-    bg: 'rgba(245,158,11,.12)',
+    bg: 'rgba(245,158,11,.12)'
   },
   {
     label: 'Approved',
     value: returns.value.filter((r) => r.status === 'approved').length,
     icon: 'check_circle',
     color: 'green-4',
-    bg: 'rgba(34,197,94,.12)',
+    bg: 'rgba(34,197,94,.12)'
   },
   {
     label: 'Refunded',
     value: returns.value.filter((r) => r.status === 'refunded').length,
     icon: 'payments',
     color: 'purple-4',
-    bg: 'rgba(139,92,246,.12)',
-  },
+    bg: 'rgba(139,92,246,.12)'
+  }
 ])
 
-// ── Helpers ───────────────────────────────────────────────────
+// ───── HELPERS ─────
 const statusColor = (s) =>
-  ({ pending: 'warning', approved: 'positive', rejected: 'negative', refunded: 'purple-5' })[s] ||
-  'grey'
+  ({
+    pending: 'warning',
+    approved: 'positive',
+    rejected: 'negative',
+    refunded: 'purple-5'
+  }[s] || 'grey')
+
 const statusIcon = (s) =>
-  ({ pending: 'schedule', approved: 'check_circle', rejected: 'cancel', refunded: 'payments' })[
-    s
-  ] || 'help'
+  ({
+    pending: 'schedule',
+    approved: 'check_circle',
+    rejected: 'cancel',
+    refunded: 'payments'
+  }[s] || 'help')
 
-// ── Confirm dialog ────────────────────────────────────────────
-const confirmConfigs = {
-  approve: {
-    title: 'Approve Return?',
-    message: 'This will approve the return request.',
-    icon: 'check_circle',
-    color: 'positive',
-    btnLabel: 'Approve',
-  },
-  reject: {
-    title: 'Reject Return?',
-    message: 'Please provide a reason for rejection.',
-    icon: 'cancel',
-    color: 'negative',
-    btnLabel: 'Reject',
-  },
-  refund: {
-    title: 'Process Refund?',
-    message: 'This will initiate a refund to the customer.',
-    icon: 'payments',
-    color: 'purple-5',
-    btnLabel: 'Refund Now',
-  },
-}
-const confirmConfig = computed(() => confirmConfigs[confirmAction.value] || {})
-
+// ───── ACTIONS ─────
 const openConfirm = (action, row) => {
   confirmAction.value = action
   confirmTarget.value = row
@@ -416,35 +372,40 @@ const openConfirm = (action, row) => {
   confirmDialog.value = true
 }
 
-// Simulates POST /admin/returns/{id}/approve|reject|refund
 const executeAction = async () => {
   actionLoading.value = true
-  await new Promise((r) => setTimeout(r, 700)) // simulate API call
-  const i = returns.value.findIndex((r) => r.id === confirmTarget.value.id)
-  if (confirmAction.value === 'approve') returns.value[i].status = 'approved'
-  else if (confirmAction.value === 'reject') returns.value[i].status = 'rejected'
-  else if (confirmAction.value === 'refund') returns.value[i].status = 'refunded'
-  actionLoading.value = false
-  confirmDialog.value = false
-  showToast(
-    confirmAction.value === 'approve'
-      ? 'Return approved successfully!'
-      : confirmAction.value === 'reject'
-        ? 'Return rejected.'
-        : 'Refund processed successfully!',
-    confirmAction.value === 'reject' ? 'negative' : 'positive',
-    confirmAction.value === 'reject' ? 'cancel' : 'check_circle',
-  )
-}
 
-const showToast = (msg, color = 'positive', icon = 'check_circle') => {
-  toastMessage.value = msg
-  toastColor.value = color
-  toastIcon.value = icon
-  toastVisible.value = true
-  setTimeout(() => {
-    toastVisible.value = false
-  }, 3000)
+  try {
+    if (confirmAction.value === 'approve') {
+      await orderService.approveReturn(confirmTarget.value.id)
+    }
+
+    if (confirmAction.value === 'reject') {
+      await orderService.rejectReturn(confirmTarget.value.id, {
+        reason: rejectReason.value
+      })
+    }
+
+    if (confirmAction.value === 'refund') {
+      await orderService.completeRefund(confirmTarget.value.id)
+    }
+
+    Notify.create({
+      type: 'positive',
+      message: `Return ${confirmAction.value} successful`
+    })
+
+    await fetchReturns()
+
+  } catch (err) {
+    Notify.create({
+      type: 'negative',
+      message: err?.message || 'Action failed'
+    })
+  } finally {
+    actionLoading.value = false
+    confirmDialog.value = false
+  }
 }
 </script>
 

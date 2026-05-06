@@ -69,5 +69,20 @@ export default [
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
-  }
+  },
+  {
+  path: '/admin',
+  component: () => import('layouts/AdminLayout.vue'),
+  meta: { requiresAdmin: true },
+  children: [
+    // ... existing admin routes ...
+ 
+    {
+      path: 'shipments',
+      name: 'AdminShipments',
+      component: () => import('pages/admin/AdminShipments.vue'),
+      meta: { title: 'Shipments', icon: 'local_shipping' },
+    },
+  ],
+}
 ]

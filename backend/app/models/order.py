@@ -127,4 +127,21 @@ class Order(Base):
         "PaymentTransaction",
         back_populates="order",
         cascade="all, delete-orphan"
+    )# =====================================================
+# MISSING FIELDS (ADD THIS)
+# =====================================================
+
+    gross_amount = Column(
+        Numeric(12, 2),
+        nullable=True
     )
+
+    transaction_id = Column(
+         Integer,
+         nullable=True
+    )
+    shipment = relationship(
+    "Shipment",
+    back_populates="order",
+    uselist=False   # because 1 order = 1 shipment
+)

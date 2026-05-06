@@ -1,26 +1,45 @@
 <template>
   <q-page class="admin-page">
+
+    <!-- ── Page header ──────────────────────────────────────────────── -->
     <div class="page-header q-px-lg q-pt-lg q-pb-md">
       <div class="row items-center justify-between">
         <div>
           <div class="text-h5 text-weight-bold text-grey-9">Shipments</div>
           <div class="text-caption text-blue-7">Track and manage order shipments</div>
         </div>
-        <q-btn
-          label="Add Shipment"
-          color="blue-6"
-          unelevated
-          no-caps
-          icon="add"
-          @click="openModal(null)"
-        />
+        <div class="row q-gutter-sm">
+          <q-btn
+            flat
+            round
+            icon="refresh"
+            color="blue-5"
+            :loading="loading"
+            @click="loadAll"
+          >
+            <q-tooltip>Refresh</q-tooltip>
+          </q-btn>
+          <q-btn
+            label="Add Shipment"
+            color="blue-6"
+            unelevated
+            no-caps
+            icon="add"
+            @click="openCreateModal"
+          />
+        </div>
       </div>
     </div>
 
     <div class="q-px-lg q-pb-lg q-pt-md">
-      <!-- Summary -->
+
+      <!-- ── Stats ──────────────────────────────────────────────────── -->
       <div class="row q-gutter-md q-mb-lg">
-        <div class="col-12 col-sm-6 col-md-3" v-for="s in summary" :key="s.label">
+        <div
+          v-for="s in summaryCards"
+          :key="s.label"
+          class="col-12 col-sm-6 col-md-2"
+        >
           <q-card class="stat-card" flat>
             <q-card-section class="q-pa-md">
               <div class="row items-center q-gutter-sm q-mb-xs">
@@ -29,75 +48,99 @@
                 </div>
                 <span class="text-caption text-blue-7">{{ s.label }}</span>
               </div>
-              <div class="text-h5 text-grey-9 text-weight-bold">{{ s.value }}</div>
+              <div class="text-h5 text-grey-9 text-weight-bold">
+                <q-skeleton v-if="statsLoading" type="text" width="40px" />
+                <span v-else>{{ s.value }}</span>
+              </div>
             </q-card-section>
           </q-card>
         </div>
       </div>
 
-      <!-- Tabs + Search -->
+      <!-- ── Tabs ───────────────────────────────────────────────────── -->
       <q-tabs
-        v-model="tab"
+        v-model="activeTab"
         dense
         align="left"
         active-color="blue-6"
         indicator-color="blue-5"
         class="q-mb-md text-blue-8"
       >
-        <q-tab name="all" label="All" />
-        <q-tab name="pending" label="Pending" />
-        <q-tab name="in_transit" label="In Transit" />
-        <q-tab name="delivered" label="Delivered" />
+        <q-tab name="ALL"             label="All" />
+        <q-tab name="PENDING"         label="Pending" />
+        <q-tab name="SHIPPED"         label="Shipped" />
+        <q-tab name="OUT_FOR_DELIVERY" label="Out for Delivery" />
+        <q-tab name="DELIVERED"       label="Delivered" />
+        <q-tab name="FAILED"          label="Failed" />
+        <q-tab name="RETURNED"        label="Returned" />
       </q-tabs>
 
+      <!-- ── Search ─────────────────────────────────────────────────── -->
       <div class="row q-gutter-md q-mb-md">
-        <div class="col-12 col-sm">
+        <div class="col-12 col-sm-6">
           <q-input
             v-model="search"
-            placeholder="Search shipment ID, order or tracking..."
+            placeholder="Search tracking, order ID, courier…"
             dense
             standout="bg-blue-1"
             clearable
+            @clear="search = ''"
           >
             <template #prepend><q-icon name="search" color="blue-4" /></template>
           </q-input>
         </div>
       </div>
 
-      <!-- Shipment list table -->
+      <!-- ── Error banner ───────────────────────────────────────────── -->
+      <q-banner
+        v-if="loadError"
+        rounded
+        class="bg-red-1 text-negative q-mb-md"
+        icon="error"
+        dense
+      >
+        {{ loadError }}
+        <template #action>
+          <q-btn flat label="Retry" @click="loadAll" />
+        </template>
+      </q-banner>
+
+      <!-- ── Table ──────────────────────────────────────────────────── -->
       <q-card class="data-card" flat>
         <q-table
           :rows="filteredShipments"
-          :columns="cols"
+          :columns="columns"
           row-key="id"
           flat
-          :rows-per-page-options="[10, 25]"
+          :loading="loading"
+          :rows-per-page-options="[10, 25, 50]"
           class="ship-table"
           wrap-cells
         >
+          <!-- Shipment ID -->
           <template #body-cell-id="props">
-            <q-td :props="props"
-              ><code class="ship-id">{{ props.value }}</code></q-td
-            >
+            <q-td :props="props">
+              <code class="ship-id">SHP-{{ String(props.value).padStart(4, '0') }}</code>
+            </q-td>
           </template>
 
+          <!-- Order ID -->
           <template #body-cell-order_id="props">
-            <q-td :props="props"
-              ><span class="text-blue-8 text-weight-medium">{{ props.value }}</span></q-td
-            >
+            <q-td :props="props">
+              <span class="text-blue-8 text-weight-medium">#ORD-{{ props.value }}</span>
+            </q-td>
           </template>
 
+          <!-- Tracking number -->
           <template #body-cell-tracking_number="props">
             <q-td :props="props">
-              <div class="row items-center q-gutter-xs">
+              <div class="row items-center q-gutter-xs no-wrap">
                 <span class="tracking-num">{{ props.value }}</span>
                 <q-btn
-                  round
-                  flat
-                  size="xs"
+                  round flat size="xs"
                   icon="content_copy"
                   color="blue-4"
-                  @click="copyTracking(props.value)"
+                  @click="copyToClipboard(props.value)"
                 >
                   <q-tooltip>Copy</q-tooltip>
                 </q-btn>
@@ -105,8 +148,8 @@
             </q-td>
           </template>
 
-          <!-- courier_name column -->
-          <template #body-cell-courier="props">
+          <!-- Courier -->
+          <template #body-cell-courier_name="props">
             <q-td :props="props">
               <div class="row items-center q-gutter-xs">
                 <q-icon name="local_shipping" size="14px" color="blue-5" />
@@ -115,16 +158,24 @@
             </q-td>
           </template>
 
-          <template #body-cell-status="props">
+          <!-- Status -->
+          <template #body-cell-shipment_status="props">
             <q-td :props="props">
               <div class="row items-center q-gutter-xs">
-                <q-icon :name="shipIcon(props.value)" :color="shipColor(props.value)" size="14px" />
-                <q-badge :color="shipColor(props.value)" :label="props.value.replace('_', ' ')" />
+                <q-icon
+                  :name="STATUS_ICONS[props.value]"
+                  :color="STATUS_COLORS[props.value]"
+                  size="14px"
+                />
+                <q-badge
+                  :color="STATUS_COLORS[props.value]"
+                  :label="STATUS_LABELS[props.value]"
+                />
               </div>
             </q-td>
           </template>
 
-          <!-- estimated_delivery_date -->
+          <!-- Estimated delivery -->
           <template #body-cell-estimated_delivery="props">
             <q-td :props="props">
               <div class="row items-center q-gutter-xs">
@@ -134,26 +185,42 @@
             </q-td>
           </template>
 
+          <!-- Delivered at -->
+          <template #body-cell-delivered_at="props">
+            <q-td :props="props">
+              <span class="text-caption text-grey-7">
+                {{ props.value ? formatDateTime(props.value) : '—' }}
+              </span>
+            </q-td>
+          </template>
+
+          <!-- Actions -->
           <template #body-cell-actions="props">
             <q-td :props="props">
               <div class="row q-gutter-xs no-wrap">
+                <!-- Update status — disabled for terminal states -->
                 <q-btn
-                  round
-                  flat
-                  size="sm"
+                  round flat size="sm"
                   icon="edit"
                   color="blue-4"
-                  @click="openModal(props.row)"
+                  :disable="isTerminalStatus(props.row.shipment_status)"
+                  @click="openUpdateModal(props.row)"
                 >
-                  <q-tooltip>Update Tracking</q-tooltip>
+                  <q-tooltip>
+                    {{
+                      isTerminalStatus(props.row.shipment_status)
+                        ? `Status '${STATUS_LABELS[props.row.shipment_status]}' is final`
+                        : 'Update Status'
+                    }}
+                  </q-tooltip>
                 </q-btn>
+
+                <!-- View detail -->
                 <q-btn
-                  round
-                  flat
-                  size="sm"
+                  round flat size="sm"
                   icon="visibility"
                   color="cyan-7"
-                  @click="viewShipment(props.row)"
+                  @click="openDetailModal(props.row)"
                 >
                   <q-tooltip>View Details</q-tooltip>
                 </q-btn>
@@ -161,387 +228,630 @@
             </q-td>
           </template>
 
+          <!-- Empty state -->
           <template #no-data>
             <div class="full-width column flex-center q-pa-xl text-blue-7">
               <q-icon name="local_shipping" size="48px" class="q-mb-sm" />
               <div>No shipments found</div>
             </div>
           </template>
+
+          <!-- Loading state -->
+          <template #loading>
+            <q-inner-loading showing color="blue-5" />
+          </template>
         </q-table>
       </q-card>
     </div>
 
-    <!-- ── Add/Edit Shipment Modal ── -->
-    <!-- POST /admin/orders/{order_id}/shipment  |  PUT /admin/shipments/{tracking_number} -->
-    <q-dialog v-model="modal" persistent>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         CREATE SHIPMENT MODAL
+         POST /admin/orders/{order_id}/shipment
+         ════════════════════════════════════════════════════════════ -->
+    <q-dialog v-model="createModal" persistent>
       <q-card class="modal-card" style="width: 520px; max-width: 95vw">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6 text-grey-9 text-weight-bold">
-            {{ editing ? 'Update Tracking' : 'Add Shipment' }}
-          </div>
-          <q-space /><q-btn icon="close" flat round dense v-close-popup color="blue-4" />
+          <div class="text-h6 text-grey-9 text-weight-bold">Add Shipment</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup color="blue-4" />
         </q-card-section>
 
         <q-card-section>
-          <div class="column q-gutter-md">
-            <!-- order_id — required for POST /admin/orders/{order_id}/shipment -->
+          <q-form ref="createFormRef" class="column q-gutter-md">
+
             <q-input
-              v-model="form.order_id"
+              v-model.number="createForm.order_id"
               label="Order ID *"
               standout="bg-blue-1"
               dense
-              :disable="!!editing"
-              :rules="[(v) => !!v || 'Order ID required']"
+              type="number"
+              :rules="[v => !!v || 'Order ID is required']"
             />
 
-            <!-- courier_name -->
             <q-select
-              v-model="form.courier"
-              :options="courierOptions"
+              v-model="createForm.courier_name"
+              :options="COURIER_OPTIONS"
               label="Courier Name *"
               standout="bg-blue-1"
               dense
-              :rules="[(v) => !!v || 'Courier required']"
-            />
+              use-input
+              input-debounce="0"
+              @filter="courierFilter"
+              :rules="[v => !!v || 'Courier is required']"
+            >
+              <template #no-option>
+                <q-item>
+                  <q-item-section class="text-grey">No results</q-item-section>
+                </q-item>
+              </template>
+            </q-select>
 
-            <!-- tracking_number -->
             <q-input
-              v-model="form.tracking_number"
+              v-model="createForm.tracking_number"
               label="Tracking Number *"
               standout="bg-blue-1"
               dense
-              :rules="[(v) => !!v || 'Tracking number required']"
+              :rules="[v => !!v || 'Tracking number is required']"
             />
 
-            <!-- estimated_delivery_date -->
             <q-input
-              v-model="form.estimated_delivery"
-              label="Estimated Delivery Date *"
+              v-model="createForm.estimated_delivery"
+              label="Estimated Delivery Date"
               type="date"
               standout="bg-blue-1"
               dense
-              :rules="[(v) => !!v || 'Date required']"
-            />
-
-            <q-select
-              v-model="form.status"
-              :options="['pending', 'in_transit', 'out_for_delivery', 'delivered', 'failed']"
-              label="Status"
-              standout="bg-blue-1"
-              dense
             />
 
             <q-input
-              v-model="form.notes"
-              label="Notes"
+              v-model="createForm.tracking_url"
+              label="Tracking URL (optional)"
               standout="bg-blue-1"
               dense
-              type="textarea"
-              rows="2"
+              type="url"
+              placeholder="https://…"
             />
+
+            <q-banner
+              v-if="createError"
+              dense rounded
+              class="bg-red-1 text-negative"
+              icon="error"
+            >
+              {{ createError }}
+            </q-banner>
+          </q-form>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-px-md q-pb-md">
+          <q-btn label="Cancel" flat no-caps v-close-popup color="blue-4" />
+          <q-btn
+            label="Create Shipment"
+            color="blue-6"
+            unelevated no-caps
+            :loading="saving"
+            @click="submitCreate"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+
+    <!-- ════════════════════════════════════════════════════════════════
+         UPDATE STATUS MODAL
+         PUT /admin/shipments/{tracking_number}
+         ════════════════════════════════════════════════════════════ -->
+    <q-dialog v-model="updateModal" persistent>
+      <q-card class="modal-card" style="width: 440px; max-width: 95vw">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-grey-9 text-weight-bold">Update Shipment Status</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup color="blue-4" />
+        </q-card-section>
+
+        <q-card-section v-if="updateTarget">
+          <div class="column q-gutter-md">
+
+            <!-- Current info -->
+            <div class="detail-row">
+              <span class="detail-label">Tracking Number</span>
+              <code class="tracking-num">{{ updateTarget.tracking_number }}</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Current Status</span>
+              <q-badge
+                :color="STATUS_COLORS[updateTarget.shipment_status]"
+                :label="STATUS_LABELS[updateTarget.shipment_status]"
+              />
+            </div>
+
+            <q-separator />
+
+            <!-- New status -->
+            <q-select
+              v-model="updateForm.status"
+              :options="availableNextStatuses"
+              label="New Status *"
+              standout="bg-blue-1"
+              dense
+              emit-value map-options
+              :rules="[v => !!v || 'Status is required']"
+            >
+              <template #option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section avatar>
+                    <q-icon
+                      :name="STATUS_ICONS[scope.opt.value]"
+                      :color="STATUS_COLORS[scope.opt.value]"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.label }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+
+            <!-- Delivery note -->
+            <q-banner
+              v-if="updateForm.status === 'DELIVERED'"
+              dense rounded
+              class="bg-green-1 text-positive"
+              icon="info"
+            >
+              Setting to DELIVERED will automatically update the linked order status.
+            </q-banner>
+
+            <q-banner
+              v-if="updateError"
+              dense rounded
+              class="bg-red-1 text-negative"
+              icon="error"
+            >
+              {{ updateError }}
+            </q-banner>
           </div>
         </q-card-section>
 
         <q-card-actions align="right" class="q-px-md q-pb-md">
           <q-btn label="Cancel" flat no-caps v-close-popup color="blue-4" />
           <q-btn
-            :label="editing ? 'Update' : 'Create'"
+            label="Update Status"
             color="blue-6"
-            unelevated
-            no-caps
-            :loading="saveLoading"
-            @click="saveShipment"
+            unelevated no-caps
+            :loading="saving"
+            :disable="!updateForm.status"
+            @click="submitUpdate"
           />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <!-- ── Shipment Detail Card Modal ── -->
-    <!-- GET /admin/orders/{order_id}/shipment -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         DETAIL MODAL
+         GET /admin/orders/{order_id}/shipment
+         ════════════════════════════════════════════════════════════ -->
     <q-dialog v-model="detailModal">
-      <q-card class="modal-card" style="width: 500px; max-width: 95vw" v-if="viewTarget">
+      <q-card class="modal-card" style="width: 500px; max-width: 95vw">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6 text-grey-9 text-weight-bold">Shipment Details</div>
-          <q-space /><q-btn icon="close" flat round dense v-close-popup color="blue-4" />
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup color="blue-4" />
         </q-card-section>
-        <q-card-section>
-          <!-- Shipment info card -->
+
+        <q-card-section v-if="detailTarget">
+          <q-inner-loading :showing="detailLoading" color="blue-5" />
+
           <div class="detail-grid q-mb-md">
-            <div v-for="f in detailFields" :key="f.key" class="detail-row">
+            <div
+              v-for="f in detailFields"
+              :key="f.key"
+              class="detail-row"
+            >
               <div class="detail-label">
-                <q-icon :name="f.icon" size="13px" color="blue-5" class="q-mr-xs" />{{ f.label }}
+                <q-icon :name="f.icon" size="13px" color="blue-5" class="q-mr-xs" />
+                {{ f.label }}
               </div>
-              <div class="detail-value">{{ viewTarget[f.key] || '—' }}</div>
+              <div class="detail-value">{{ resolveField(detailTarget, f) }}</div>
             </div>
-            <!-- Status with badge -->
+
+            <!-- Status badge row -->
             <div class="detail-row">
               <div class="detail-label">
-                <q-icon name="info" size="13px" color="blue-5" class="q-mr-xs" />Status
+                <q-icon name="info" size="13px" color="blue-5" class="q-mr-xs" />
+                Status
               </div>
               <q-badge
-                :color="shipColor(viewTarget.status)"
-                :label="viewTarget.status.replace('_', ' ')"
+                :color="STATUS_COLORS[detailTarget.shipment_status]"
+                :label="STATUS_LABELS[detailTarget.shipment_status]"
               />
             </div>
           </div>
 
-          <!-- Tracking timeline -->
+          <!-- Tracking URL link -->
+          <div v-if="detailTarget.tracking_url" class="q-mb-md">
+            <q-btn
+              flat dense no-caps
+              icon="open_in_new"
+              color="blue-5"
+              label="Open Tracking Page"
+              :href="detailTarget.tracking_url"
+              target="_blank"
+            />
+          </div>
+
+          <!-- Timeline -->
           <div class="text-caption text-blue-7 text-weight-bold text-uppercase q-mb-sm">
-            Tracking Timeline
+            Status Timeline
           </div>
           <q-timeline color="blue" dense>
             <q-timeline-entry
-              v-for="t in shipTimeline"
-              :key="t.status"
-              :title="t.status.replace('_', ' ')"
-              :subtitle="t.time"
-              :color="shipColor(t.status)"
-              icon="circle"
+              v-for="step in buildTimeline(detailTarget)"
+              :key="step.status"
+              :title="STATUS_LABELS[step.status]"
+              :subtitle="step.time"
+              :color="step.active ? STATUS_COLORS[step.status] : 'grey-4'"
+              :icon="step.active ? STATUS_ICONS[step.status] : 'radio_button_unchecked'"
             />
           </q-timeline>
         </q-card-section>
       </q-card>
     </q-dialog>
 
-    <!-- ── Toast ── -->
+
+    <!-- ── Toast notification ────────────────────────────────────────── -->
     <q-dialog v-model="toastVisible" position="bottom" seamless>
       <q-card class="toast-card row items-center q-gutter-sm q-pa-md">
-        <q-icon name="check_circle" color="positive" size="20px" />
+        <q-icon
+          :name="toastType === 'error' ? 'error' : 'check_circle'"
+          :color="toastType === 'error' ? 'negative' : 'positive'"
+          size="20px"
+        />
         <span class="text-grey-9 text-weight-medium">{{ toastMessage }}</span>
       </q-card>
     </q-dialog>
+
   </q-page>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
 
-const tab = ref('all')
-const search = ref('')
-const modal = ref(false)
-const editing = ref(null)
-const detailModal = ref(false)
-const viewTarget = ref(null)
-const saveLoading = ref(false)
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import shipmentService, {
+  // SHIPMENT_STATUSES,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  STATUS_ICONS,
+  COURIER_OPTIONS,
+  // VALID_TRANSITIONS,
+} from 'src/services/shipmentService.js'
+
+// ── State ────────────────────────────────────────────────────────────────────
+const shipments    = ref([])
+const stats        = ref({})
+const loading      = ref(false)
+const statsLoading = ref(false)
+const loadError    = ref('')
+
+const activeTab = ref('ALL')
+const search    = ref('')
+
+// Create modal
+const createModal   = ref(false)
+const createFormRef = ref(null)
+const createError   = ref('')
+const saving        = ref(false)
+const createForm    = ref(emptyCreateForm())
+
+// Update modal
+const updateModal  = ref(false)
+const updateTarget = ref(null)
+const updateForm   = ref({ status: '' })
+const updateError  = ref('')
+
+// Detail modal
+const detailModal   = ref(false)
+const detailTarget  = ref(null)
+const detailLoading = ref(false)
+
+// Toast
 const toastVisible = ref(false)
 const toastMessage = ref('')
+const toastType    = ref('success')
 
-const courierOptions = [
-  'DTDC',
-  'BlueDart',
-  'Delhivery',
-  'Ekart',
-  'Amazon Logistics',
-  'FedEx',
-  'DHL',
-]
+// Courier filter (for q-select use-input)
+const courierFilteredOptions = ref([...COURIER_OPTIONS])
 
-const form = ref({
-  order_id: '',
-  courier: '',
-  tracking_number: '',
-  estimated_delivery: '',
-  status: 'pending',
-  notes: '',
-})
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function emptyCreateForm () {
+  return {
+    order_id:           '',
+    courier_name:       '',
+    tracking_number:    '',
+    estimated_delivery: '',
+    tracking_url:       '',
+  }
+}
 
-const shipments = ref([
-  {
-    id: 'SHP-001',
-    order_id: '#ORD-1001',
-    tracking_number: 'DTDC12345678',
-    courier: 'DTDC',
-    status: 'delivered',
-    created_at: '2024-01-10',
-    estimated_delivery: '2024-01-13',
-    notes: '',
-  },
-  {
-    id: 'SHP-002',
-    order_id: '#ORD-1003',
-    tracking_number: 'BD87654321',
-    courier: 'BlueDart',
-    status: 'in_transit',
-    created_at: '2024-01-14',
-    estimated_delivery: '2024-01-17',
-    notes: 'Handle with care',
-  },
-  {
-    id: 'SHP-003',
-    order_id: '#ORD-1005',
-    tracking_number: 'DLV11223344',
-    courier: 'Delhivery',
-    status: 'out_for_delivery',
-    created_at: '2024-01-15',
-    estimated_delivery: '2024-01-16',
-    notes: '',
-  },
-  {
-    id: 'SHP-004',
-    order_id: '#ORD-1006',
-    tracking_number: 'EK99887766',
-    courier: 'Ekart',
-    status: 'pending',
-    created_at: '2024-01-16',
-    estimated_delivery: '2024-01-20',
-    notes: '',
-  },
-  {
-    id: 'SHP-005',
-    order_id: '#ORD-1007',
-    tracking_number: 'FX55443322',
-    courier: 'FedEx',
-    status: 'failed',
-    created_at: '2024-01-12',
-    estimated_delivery: '2024-01-15',
-    notes: 'Address not found',
-  },
-])
+function isTerminalStatus (s) {
+  return shipmentService.isTerminalStatus(s)
+}
 
-// All required columns: courier_name, tracking_number, estimated_delivery_date
-const cols = [
-  { name: 'id', label: 'Shipment ID', field: 'id', align: 'left', sortable: true },
-  { name: 'order_id', label: 'Order ID', field: 'order_id', align: 'left' },
-  { name: 'courier', label: 'Courier Name', field: 'courier', align: 'left' },
-  { name: 'tracking_number', label: 'Tracking Number', field: 'tracking_number', align: 'left' },
-  { name: 'status', label: 'Status', field: 'status', align: 'left' },
-  {
-    name: 'estimated_delivery',
-    label: 'Est. Delivery',
-    field: 'estimated_delivery',
-    align: 'left',
-  },
-  { name: 'actions', label: '', field: 'id', align: 'left' },
-]
+function getValidNextStatuses (s) {
+  return shipmentService.getValidNextStatuses(s)
+}
 
-const filteredShipments = computed(() =>
-  shipments.value.filter((s) => {
-    const ms =
-      !search.value ||
-      s.id.toLowerCase().includes(search.value.toLowerCase()) ||
-      s.order_id.toLowerCase().includes(search.value.toLowerCase()) ||
-      s.tracking_number.toLowerCase().includes(search.value.toLowerCase())
-    return ms && (tab.value === 'all' || s.status === tab.value)
-  }),
-)
+function formatDateTime (dt) {
+  if (!dt) return '—'
+  return new Date(dt).toLocaleString('en-IN', {
+    day:    '2-digit',
+    month:  'short',
+    year:   'numeric',
+    hour:   '2-digit',
+    minute: '2-digit',
+  })
+}
 
-const summary = computed(() => [
+function copyToClipboard (text) {
+  navigator.clipboard?.writeText(text)
+  showToast('Tracking number copied!', 'success')
+}
+
+function showToast (msg, type = 'success') {
+  toastMessage.value = msg
+  toastType.value    = type
+  toastVisible.value = true
+  setTimeout(() => { toastVisible.value = false }, 3000)
+}
+
+function resolveField (obj, f) {
+  const val = obj[f.key]
+  if (val === null || val === undefined || val === '') return '—'
+  if (f.isDate) return val
+  if (f.isDateTime) return formatDateTime(val)
+  return val
+}
+
+// ── Computed ─────────────────────────────────────────────────────────────────
+const summaryCards = computed(() => [
   {
     label: 'Total',
-    value: shipments.value.length,
-    icon: 'local_shipping',
-    color: 'blue-4',
-    bg: 'rgba(59,130,246,.12)',
+    value: stats.value.total ?? 0,
+    icon: 'local_shipping', color: 'blue-4', bg: 'rgba(59,130,246,.12)',
   },
   {
-    label: 'In Transit',
-    value: shipments.value.filter((s) => s.status === 'in_transit').length,
-    icon: 'directions_transit',
-    color: 'cyan-4',
-    bg: 'rgba(6,182,212,.12)',
+    label: 'Pending',
+    value: stats.value.pending ?? 0,
+    icon: 'schedule', color: 'amber-7', bg: 'rgba(245,158,11,.12)',
+  },
+  {
+    label: 'Shipped',
+    value: stats.value.shipped ?? 0,
+    icon: 'local_shipping', color: 'cyan-5', bg: 'rgba(6,182,212,.12)',
+  },
+  {
+    label: 'Out for Delivery',
+    value: stats.value.out_for_delivery ?? 0,
+    icon: 'two_wheeler', color: 'purple-5', bg: 'rgba(139,92,246,.12)',
   },
   {
     label: 'Delivered',
-    value: shipments.value.filter((s) => s.status === 'delivered').length,
-    icon: 'check_circle',
-    color: 'green-4',
-    bg: 'rgba(34,197,94,.12)',
+    value: stats.value.delivered ?? 0,
+    icon: 'check_circle', color: 'green-5', bg: 'rgba(34,197,94,.12)',
   },
   {
     label: 'Failed',
-    value: shipments.value.filter((s) => s.status === 'failed').length,
-    icon: 'error',
-    color: 'red-4',
-    bg: 'rgba(239,68,68,.12)',
+    value: stats.value.failed ?? 0,
+    icon: 'error', color: 'red-4', bg: 'rgba(239,68,68,.12)',
   },
 ])
 
+const filteredShipments = computed(() => {
+  const term = (search.value || '').toLowerCase()
+  return shipments.value.filter(s => {
+    // Tab filter
+    if (activeTab.value !== 'ALL' && s.shipment_status !== activeTab.value) return false
+    // Search filter
+    if (term) {
+      const hay = [
+        String(s.id),
+        String(s.order_id),
+        (s.tracking_number || '').toLowerCase(),
+        (s.courier_name    || '').toLowerCase(),
+      ].join(' ')
+      if (!hay.includes(term)) return false
+    }
+    return true
+  })
+})
+
+const availableNextStatuses = computed(() => {
+  if (!updateTarget.value) return []
+  return getValidNextStatuses(updateTarget.value.shipment_status).map(s => ({
+    label: STATUS_LABELS[s],
+    value: s,
+  }))
+})
+
+// ── Table columns ─────────────────────────────────────────────────────────────
+const columns = [
+  { name: 'id',                 label: 'Shipment ID',    field: 'id',                 align: 'left', sortable: true },
+  { name: 'order_id',           label: 'Order ID',       field: 'order_id',           align: 'left', sortable: true },
+  { name: 'courier_name',       label: 'Courier',        field: 'courier_name',       align: 'left' },
+  { name: 'tracking_number',    label: 'Tracking No.',   field: 'tracking_number',    align: 'left' },
+  { name: 'shipment_status',    label: 'Status',         field: 'shipment_status',    align: 'left', sortable: true },
+  { name: 'estimated_delivery', label: 'Est. Delivery',  field: 'estimated_delivery', align: 'left' },
+  { name: 'delivered_at',       label: 'Delivered At',   field: 'delivered_at',       align: 'left' },
+  { name: 'actions',            label: '',               field: 'id',                 align: 'left' },
+]
+
+// ── Detail fields config ──────────────────────────────────────────────────────
 const detailFields = [
-  { key: 'id', label: 'Shipment ID', icon: 'tag' },
-  { key: 'order_id', label: 'Order ID', icon: 'receipt' },
-  { key: 'tracking_number', label: 'Tracking No.', icon: 'qr_code' },
-  { key: 'courier', label: 'Courier Name', icon: 'local_shipping' },
-  { key: 'estimated_delivery', label: 'Est. Delivery', icon: 'event' },
-  { key: 'notes', label: 'Notes', icon: 'notes' },
+  { key: 'id',                 label: 'Shipment ID',    icon: 'tag' },
+  { key: 'order_id',           label: 'Order ID',       icon: 'receipt' },
+  { key: 'tracking_number',    label: 'Tracking No.',   icon: 'qr_code' },
+  { key: 'courier_name',       label: 'Courier',        icon: 'local_shipping' },
+  { key: 'estimated_delivery', label: 'Est. Delivery',  icon: 'event',       isDate: true },
+  { key: 'shipped_at',         label: 'Shipped At',     icon: 'flight_takeoff', isDateTime: true },
+  { key: 'delivered_at',       label: 'Delivered At',   icon: 'done_all',    isDateTime: true },
+  { key: 'created_at',         label: 'Created At',     icon: 'schedule',    isDateTime: true },
 ]
 
-const shipTimeline = [
-  { status: 'pending', time: '2024-01-14 10:00' },
-  { status: 'in_transit', time: '2024-01-15 08:30' },
-  { status: 'out_for_delivery', time: '2024-01-16 09:00' },
-]
+// ── Timeline builder ─────────────────────────────────────────────────────────
+const STATUS_ORDER = ['PENDING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED']
 
-const shipColor = (s) =>
-  ({
-    pending: 'warning',
-    in_transit: 'info',
-    out_for_delivery: 'purple-5',
-    delivered: 'positive',
-    failed: 'negative',
-  })[s] || 'grey'
-const shipIcon = (s) =>
-  ({
-    pending: 'schedule',
-    in_transit: 'local_shipping',
-    out_for_delivery: 'two_wheeler',
-    delivered: 'check_circle',
-    failed: 'error',
-  })[s] || 'help'
+function buildTimeline (shipment) {
+  const current = shipment.shipment_status
+  const isSpecial = ['FAILED', 'RETURNED'].includes(current)
 
-const copyTracking = (v) => navigator.clipboard?.writeText(v)
-const viewShipment = (s) => {
-  viewTarget.value = s
-  detailModal.value = true
-}
-const openModal = (s) => {
-  editing.value = s
-  form.value = s
-    ? { ...s }
-    : {
-        order_id: '',
-        courier: '',
-        tracking_number: '',
-        estimated_delivery: '',
-        status: 'pending',
-        notes: '',
-      }
-  modal.value = true
-}
+  const base = STATUS_ORDER.map(s => ({
+    status: s,
+    time:   '',
+    active: false,
+  }))
 
-// Simulates POST /admin/orders/{order_id}/shipment  or  PUT /admin/shipments/{tracking_number}
-const saveShipment = async () => {
-  if (
-    !form.value.order_id ||
-    !form.value.courier ||
-    !form.value.tracking_number ||
-    !form.value.estimated_delivery
-  )
-    return
-  saveLoading.value = true
-  await new Promise((r) => setTimeout(r, 600))
-  if (editing.value) {
-    const i = shipments.value.findIndex((s) => s.id === editing.value.id)
-    shipments.value[i] = { ...shipments.value[i], ...form.value }
-  } else {
-    shipments.value.push({
-      ...form.value,
-      id: 'SHP-' + String(shipments.value.length + 1).padStart(3, '0'),
-      created_at: new Date().toISOString().split('T')[0],
-    })
+  // Mark reached steps
+  const idx = STATUS_ORDER.indexOf(current)
+  base.forEach((step, i) => {
+    if (i <= idx) step.active = true
+  })
+
+  // Timestamps
+  if (shipment.shipped_at)    base[1].time = formatDateTime(shipment.shipped_at)
+  if (shipment.delivered_at)  base[3].time = formatDateTime(shipment.delivered_at)
+
+  if (isSpecial) {
+    base.push({ status: current, time: '', active: true })
   }
-  saveLoading.value = false
-  modal.value = false
-  showToast(editing.value ? 'Shipment updated successfully!' : 'Shipment created successfully!')
+
+  return base
 }
 
-const showToast = (msg) => {
-  toastMessage.value = msg
-  toastVisible.value = true
-  setTimeout(() => {
-    toastVisible.value = false
-  }, 3000)
+// ── Data loading ─────────────────────────────────────────────────────────────
+async function loadShipments () {
+  loading.value  = true
+  loadError.value = ''
+  try {
+    const data = await shipmentService.getAllShipments({ limit: 200 })
+    // API returns array directly (List[ShipmentListItem])
+    shipments.value = Array.isArray(data) ? data : (data.items ?? data.shipments ?? [])
+  } catch (err) {
+    loadError.value = err.message || 'Failed to load shipments'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadStats () {
+  statsLoading.value = true
+  try {
+    stats.value = await shipmentService.getShipmentStats()
+  } catch {
+    // Stats non-critical — silently ignore
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+async function loadAll () {
+  await Promise.all([loadShipments(), loadStats()])
+}
+
+onMounted(loadAll)
+
+// ── Courier select filter ─────────────────────────────────────────────────────
+function courierFilter (val, update) {
+  update(() => {
+    if (!val) {
+      courierFilteredOptions.value = [...COURIER_OPTIONS]
+    } else {
+      const needle = val.toLowerCase()
+      courierFilteredOptions.value = COURIER_OPTIONS.filter(o =>
+        o.toLowerCase().includes(needle)
+      )
+    }
+  })
+}
+
+// ── Create modal ─────────────────────────────────────────────────────────────
+function openCreateModal () {
+  createForm.value  = emptyCreateForm()
+  createError.value = ''
+  createModal.value = true
+}
+
+async function submitCreate () {
+  const valid = await createFormRef.value?.validate()
+  if (!valid) return
+
+  saving.value       = true
+  createError.value  = ''
+  try {
+    const payload = {
+      courier_name:       createForm.value.courier_name,
+      tracking_number:    createForm.value.tracking_number,
+      estimated_delivery: createForm.value.estimated_delivery || undefined,
+      tracking_url:       createForm.value.tracking_url       || undefined,
+    }
+    await shipmentService.createShipment(createForm.value.order_id, payload)
+    createModal.value = false
+    showToast('Shipment created successfully!')
+    await loadAll()
+  } catch (err) {
+    createError.value = err.message || 'Failed to create shipment'
+  } finally {
+    saving.value = false
+  }
+}
+
+// ── Update modal ──────────────────────────────────────────────────────────────
+function openUpdateModal (row) {
+  updateTarget.value = row
+  updateForm.value   = { status: '' }
+  updateError.value  = ''
+  updateModal.value  = true
+}
+
+async function submitUpdate () {
+  if (!updateForm.value.status) return
+
+  saving.value      = true
+  updateError.value = ''
+  try {
+    await shipmentService.updateShipmentStatus(
+      updateTarget.value.tracking_number,
+      updateForm.value.status
+    )
+    window.dispatchEvent(new Event('shipment-updated'))
+
+    updateModal.value = false
+    showToast(`Shipment updated to ${STATUS_LABELS[updateForm.value.status]}`)
+    await loadAll()
+  } catch (err) {
+    updateError.value = err.message || 'Failed to update shipment'
+  } finally {
+    saving.value = false
+  }
+}
+
+// ── Detail modal ──────────────────────────────────────────────────────────────
+async function openDetailModal (row) {
+  detailTarget.value  = { ...row }
+  detailLoading.value = true
+  detailModal.value   = true
+  try {
+    // Fetch full detail (includes order_status, user_id, tracking_url, etc.)
+    const detail = await shipmentService.getShipmentByOrder(row.order_id)
+    detailTarget.value = detail
+  } catch {
+    // Fall back to list-row data if detail fetch fails
+  } finally {
+    detailLoading.value = false
+  }
 }
 </script>
+
 
 <style scoped>
 .admin-page {
@@ -551,11 +861,15 @@ const showToast = (msg) => {
 .page-header {
   border-bottom: 1px solid #e2e8f0;
 }
+
+/* ── Stat cards ── */
 .stat-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
+  transition: box-shadow .18s;
 }
+.stat-card:hover { box-shadow: 0 4px 16px rgba(59,130,246,.1); }
 .stat-icon {
   width: 34px;
   height: 34px;
@@ -564,59 +878,58 @@ const showToast = (msg) => {
   align-items: center;
   justify-content: center;
 }
+
+/* ── Data table ── */
 .data-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
 }
-.ship-table {
-  background: transparent !important;
-}
-.ship-table :deep(.q-table__container) {
-  background: transparent !important;
-}
+.ship-table { background: transparent !important; }
+.ship-table :deep(.q-table__container) { background: transparent !important; }
 .ship-table :deep(th) {
   background: #eff6ff;
   color: #1e40af;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: .05em;
   border-bottom: 1px solid #dbeafe;
 }
 .ship-table :deep(td) {
   color: #1e293b;
   border-bottom: 1px solid #f1f5f9;
 }
-.ship-table :deep(tr:hover td) {
-  background: #eff6ff;
-}
+.ship-table :deep(tr:hover td) { background: #eff6ff; }
 .ship-table :deep(.q-table__bottom) {
   color: #64748b;
   border-top: 1px solid #e2e8f0;
 }
+
+/* ── Badges ── */
 .ship-id {
   font-family: monospace;
   color: #1e40af;
   background: #dbeafe;
   padding: 2px 8px;
   border-radius: 4px;
+  font-size: 13px;
 }
 .tracking-num {
   font-family: monospace;
   font-size: 13px;
   color: #0e7490;
 }
+
+/* ── Modals ── */
 .modal-card {
   background: #ffffff;
   border: 1px solid #bfdbfe;
   border-radius: 16px;
 }
-.detail-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+
+/* ── Detail grid ── */
+.detail-grid { display: flex; flex-direction: column; gap: 10px; }
 .detail-row {
   display: flex;
   justify-content: space-between;
@@ -637,11 +950,13 @@ const showToast = (msg) => {
   font-size: 13px;
   font-weight: 500;
 }
+
+/* ── Toast ── */
 .toast-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,.1);
   min-width: 260px;
 }
 </style>

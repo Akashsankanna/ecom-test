@@ -12,16 +12,19 @@ from enum import Enum
 class OrderStatus(str, Enum):
     PENDING    = "PENDING"
     PAID       = "PAID"
+    CONFIRMED  = "CONFIRMED"
     PROCESSING = "PROCESSING"
     SHIPPED    = "SHIPPED"
     DELIVERED  = "DELIVERED"
     CANCELLED  = "CANCELLED"
+    PAYMENT_FAILED = "PAYMENT_FAILED"
 
 
 class PaymentStatus(str, Enum):
-    PENDING = "PENDING"
-    SUCCESS = "SUCCESS"
-    FAILED  = "FAILED"
+    PENDING  = "PENDING"
+    SUCCESS  = "SUCCESS"
+    FAILED   = "FAILED"
+    REFUNDED = "REFUNDED"
 
 
 class ShipmentStatus(str, Enum):
@@ -29,6 +32,8 @@ class ShipmentStatus(str, Enum):
     SHIPPED          = "SHIPPED"
     OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY"
     DELIVERED        = "DELIVERED"
+    FAILED           = "FAILED"
+    RETURNED         = "RETURNED"
 
 
 class ReturnStatus(str, Enum):
@@ -50,11 +55,10 @@ class ExchangeStatus(str, Enum):
     APPROVED  = "APPROVED"
     REJECTED  = "REJECTED"
     COMPLETED = "COMPLETED"
-    CANCELLED = "CANCELLED"
 
 
 class InventoryChangeType(str, Enum):
-    ORDER           = "ORDER"           # new in ecomdb21
+    ORDER           = "ORDER"
     ORDER_PLACED    = "ORDER_PLACED"
     ORDER_CANCELLED = "ORDER_CANCELLED"
     EXCHANGE        = "EXCHANGE"
@@ -75,8 +79,10 @@ class OrderItemOut(BaseModel):
     id: int
     order_id: int
     variant_id: int
+    product_id: Optional[int] = None
     quantity: int
     price: Decimal
+    customization_total: Optional[Decimal] = Decimal("0")
 
     class Config:
         from_attributes = True
@@ -86,15 +92,16 @@ class OrderOut(BaseModel):
     id: int
     user_id: Optional[int] = None
     total_amount: Decimal
+    gross_amount: Optional[Decimal] = None
     status: str
     payment_status: str
     address_id: Optional[int] = None
-    # new in ecomdb21
     coupon_id: Optional[int] = None
     coupon_discount_amount: Optional[Decimal] = None
     additional_discount_amount: Optional[Decimal] = None
     final_amount: Optional[Decimal] = None
     discount_reason: Optional[str] = None
+    transaction_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -106,10 +113,17 @@ class OrderDetailOut(BaseModel):
     id: int
     user_id: Optional[int] = None
     total_amount: Decimal
+    gross_amount: Optional[Decimal] = None
     status: str
     payment_status: str
     address_id: Optional[int] = None
+    coupon_id: Optional[int] = None
+    coupon_discount_amount: Optional[Decimal] = None
+    additional_discount_amount: Optional[Decimal] = None
+    final_amount: Optional[Decimal] = None
+    discount_reason: Optional[str] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     items: List[OrderItemOut] = []
 
     class Config:
@@ -136,6 +150,7 @@ class ShipmentCreate(BaseModel):
     courier_name: str
     tracking_number: str
     estimated_delivery: Optional[date] = None
+    tracking_url: Optional[str] = None
 
 
 class ShipmentStatusUpdate(BaseModel):
@@ -149,9 +164,12 @@ class ShipmentOut(BaseModel):
     tracking_number: str
     shipment_status: str
     tracking_url: Optional[str] = None
+    shipping_label_url: Optional[str] = None
     estimated_delivery: Optional[date] = None
     shipped_at: Optional[datetime] = None
     delivered_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -192,6 +210,8 @@ class ReturnRequestOut(BaseModel):
     requested_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -221,6 +241,7 @@ class ExchangeOut(BaseModel):
     order_item_id: int
     reason: Optional[str] = None
     status: str
+    return_request_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -281,9 +302,34 @@ class VariantInventoryOut(BaseModel):
     stock: int
     reserved_stock: int
     low_stock_threshold: int
-    color: Optional[str] = None
+    color_id: Optional[int] = None
     size: Optional[str] = None
     is_deleted: bool
 
     class Config:
         from_attributes = True
+
+
+# ════════════════════════════════════════════════════════════
+# COUPON SCHEMAS (for order discount endpoints)
+# ════════════════════════════════════════════════════════════
+
+class ApplyAdditionalDiscount(BaseModel):
+    order_id: int
+    discount_amount: Decimal
+    reason: Optional[str] = "Manual discount"
+
+    @field_validator("discount_amount")
+    @classmethod
+    def discount_positive(cls, v):
+        if v <= 0:
+            raise ValueError("Discount amount must be greater than 0")
+        return v
+
+
+class ApplyCouponRequest(BaseModel):
+    order_id: int
+    coupon_code: str
+    user_id: int
+    order_amount: Decimal
+    additional_discount: Optional[Decimal] = Decimal("0")

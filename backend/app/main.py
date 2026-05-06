@@ -18,6 +18,7 @@ from app.api.routes.payments import router as payment_router
 from app.api.routes.wishlist import router as wishlist_router
 from app.api.routes.orders import router as orders_router
 from app.api.routes import tax_rate
+from app.api.routes.admin import shipment_admin
 
 # =====================================================
 # ADMIN ROUTES
@@ -165,7 +166,7 @@ app.include_router(customization_admin.router)
 
 # order management
 app.include_router(order_admin.router)
-app.include_router(shipment_admin.router)
+# app.include_router(shipment_admin.router)
 app.include_router(return_admin.router)
 app.include_router(exchange_admin.router)
 
@@ -187,6 +188,9 @@ app.include_router(notification_admin.router)
 app.include_router(review_admin.router)
 app.include_router(support_admin.router)
 
+
+app.include_router(shipment_admin.shipments_router)
+app.include_router(shipment_admin.orders_shipment_router)
 # =====================================================
 # KEYCLOAK JWT HELPERS
 # =====================================================
@@ -240,3 +244,4 @@ def verify_token(token: str) -> dict:
             status_code=401,
             detail=f"Invalid token: {str(e)}"
         )
+    
