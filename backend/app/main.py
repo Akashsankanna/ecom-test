@@ -20,6 +20,8 @@ from app.api.routes.orders import router as orders_router
 from app.api.routes import tax_rate
 from app.api.routes.admin import shipment_admin
 
+from app.api.routes.reviews import router as review_router
+
 # =====================================================
 # ADMIN ROUTES
 # =====================================================
@@ -151,6 +153,8 @@ app.include_router(checkout_router)
 app.include_router(orders_router)
 app.include_router(payment_webhook.router)
 app.include_router(tax_rate.router)
+app.include_router(review_router)
+
 
 # =====================================================
 # ADMIN ROUTERS
@@ -194,7 +198,6 @@ app.include_router(shipment_admin.orders_shipment_router)
 # =====================================================
 # KEYCLOAK JWT HELPERS
 # =====================================================
-
 from jose import jwt
 import requests
 from app.core.config import settings

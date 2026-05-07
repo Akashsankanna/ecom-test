@@ -3,13 +3,92 @@ from fastapi import HTTPException
 from typing import Optional
 
 from app.repositories.review_repo import ReviewRepository
-from app.models.review import Review
 from app.models.product import Product
 from app.models.user import User
 
 
 class ReviewService:
 
+    # ─────────────────────────────────────────
+    # CREATE REVIEW
+    # ─────────────────────────────────────────
+    @staticmethod
+    def create_review(
+        db: Session,
+        keycloak_id: str,
+        product_id: int,
+        rating: int,
+        title: Optional[str],
+        comment: Optional[str],
+    ):
+
+        # Map Keycloak sub → DB user
+        db_user = (
+            db.query(User)
+            .filter(User.keycloak_id == keycloak_id)
+            .first()
+        )
+
+        if not db_user:
+            raise HTTPException(
+                status_code=401,
+                detail="User not found in database. Please log in again."
+            )
+
+        user_id = db_user.id
+
+        # Prevent duplicate reviews
+        if ReviewRepository.check_duplicate(
+            db,
+            user_id,
+            product_id
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="You have already reviewed this product."
+            )
+
+        # Check product exists
+        product = (
+            db.query(Product)
+            .filter(Product.id == product_id)
+            .first()
+        )
+
+        if not product:
+            raise HTTPException(
+                status_code=404,
+                detail="Product not found."
+            )
+
+        # Save review
+        review = ReviewRepository.create_review(
+            db=db,
+            user_id=user_id,
+            product_id=product_id,
+            rating=rating,
+            title=title,
+            comment=comment,
+        )
+
+        return review
+
+    # ─────────────────────────────────────────
+    # PUBLIC REVIEWS
+    # ─────────────────────────────────────────
+    @staticmethod
+    def get_public_reviews(
+        db: Session,
+        product_id: int
+    ):
+        return ReviewRepository.get_public_reviews(
+            db,
+            product_id
+        )
+
+    # ─────────────────────────────────────────
+    # ADMIN
+    # ─────────────────────────────────────────
     @staticmethod
     def get_all_reviews(
         db: Session,
@@ -104,69 +183,11 @@ class ReviewService:
         product_id: Optional[int] = None,
         is_approved: Optional[bool] = None,
     ):
-        """
-        Admin view:
-        Queries raw review table joined
-        with product + user.
-        """
-
-        query = (
-            db.query(
-                Review.id,
-                Review.product_id,
-                Product.name.label("product_name"),
-                Review.user_id,
-                User.email.label("user_email"),
-                Review.rating,
-                Review.title,
-                Review.comment,
-                Review.is_verified_purchase,
-                Review.is_approved,
-                Review.created_at,
-            )
-            .join(
-                Product,
-                Review.product_id == Product.id
-            )
-            .join(
-                User,
-                Review.user_id == User.id
-            )
+        return ReviewRepository.get_review_view(
+            db,
+            product_id,
+            is_approved
         )
-
-        if product_id is not None:
-            query = query.filter(
-                Review.product_id == product_id
-            )
-
-        if is_approved is not None:
-            query = query.filter(
-                Review.is_approved == is_approved
-            )
-
-        rows = query.order_by(
-            Review.created_at.desc()
-        ).all()
-
-        return [
-            {
-                "id": r.id,
-                "product_id": r.product_id,
-                "product_name": r.product_name,
-                "user_id": r.user_id,
-                "user_email": r.user_email,
-                "rating": r.rating,
-                "title": r.title,
-                "comment": r.comment,
-                "is_verified_purchase":
-                    r.is_verified_purchase,
-                "is_approved":
-                    r.is_approved,
-                "created_at":
-                    r.created_at,
-            }
-            for r in rows
-        ]
 
     @staticmethod
     def get_rating_summary(

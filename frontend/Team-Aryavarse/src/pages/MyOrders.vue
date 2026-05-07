@@ -3,38 +3,47 @@
 
     <!-- Page Header -->
     <div class="orders-header">
-  <div class="header-left">
-    <div class="header-icon">
-      <q-icon name="receipt_long" size="22px" />
-    </div>
-    <div>
-      <h1 class="page-title">My Orders</h1>
-      <p class="page-sub">{{ orders.length }} order{{ orders.length !== 1 ? 's' : '' }} placed</p>
-    </div>
-  </div>
+      <div class="header-left">
+        <div class="header-icon">
+          <q-icon name="receipt_long" size="22px" />
+        </div>
+        <div>
+          <h1 class="page-title">My Orders</h1>
+          <p class="page-sub">{{ orders.length }} order{{ orders.length !== 1 ? 's' : '' }} placed</p>
+        </div>
+      </div>
 
-  <div v-if="orders.length > 0" class="header-right">
-    <div class="filter-tabs">
-      <button
-        v-for="tab in statusTabs"
-        :key="tab.value"
-        class="filter-tab"
-        :class="{ active: activeTab === tab.value }"
-        @click="activeTab = tab.value"
-      >
-        {{ tab.label }}
-      </button>
+      <div v-if="orders.length > 0" class="header-right">
+        <div class="filter-tabs">
+          <button
+            v-for="tab in statusTabs"
+            :key="tab.value"
+            class="filter-tab"
+            :class="{ active: activeTab === tab.value }"
+            @click="activeTab = tab.value"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="orders-list">
+      <div v-for="n in 3" :key="n" class="order-card skeleton-card">
+        <q-skeleton type="rect" height="80px" />
+      </div>
+    </div>
 
     <!-- Empty State -->
-    <div v-if="filteredOrders.length === 0" class="empty-state">
+    <div v-else-if="filteredOrders.length === 0" class="empty-state">
       <div class="empty-icon">
         <q-icon name="shopping_bag" size="52px" />
       </div>
       <p class="empty-title">No orders found</p>
-      <p class="empty-sub">You haven't placed any orders yet.</p>
+      <p class="empty-sub">
+        {{ activeTab === 'all' ? "You haven't placed any orders yet." : 'No orders with this status.' }}
+      </p>
       <button class="btn-shop" @click="$router.push('/')">
         <q-icon name="storefront" size="16px" />
         Start Shopping
@@ -60,9 +69,9 @@
               {{ formatDate(order.date) }}
             </span>
           </div>
-          <div class="status-badge" :class="statusClass(order.status)">
+          <div class="status-badge" :class="statusClass(order.rawStatus)">
             <span class="status-dot" />
-            {{ order.status }}
+            {{ statusLabel(order.rawStatus) }}
           </div>
         </div>
 
@@ -110,8 +119,8 @@
               </button>
               <button
                 class="btn btn-outline"
-                :disabled="!isTrackable(order.status)"
-                @click="trackOrder(order)"
+                :disabled="!isTrackable(order.rawStatus)"
+                @click="openTrack(order)"
               >
                 <q-icon name="local_shipping" size="15px" />
                 Track
@@ -127,37 +136,74 @@
       </div>
     </div>
 
+    <!-- Track Order Modal -->
+    <TrackOrderModal
+      v-model="showTrackModal"
+      :order="selectedOrder"
+    />
+
   </div>
 </template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+// ✅ FIX: use named import instead of default
 import { fetchOrdersByUser } from 'src/service/orderService'
+
 import { getUserId } from 'src/utils/CheckoutStorage'
+import TrackOrderModal from 'src/components/Trackordermodal.vue'
 
 const router = useRouter()
 
-const activeTab = ref('all')
-const orders = ref([])
-const loading = ref(false)
+// ─── State ────────────────────────────────────────────────────────
+const activeTab       = ref('all')
+const orders          = ref([])
+const loading         = ref(false)
+const showTrackModal  = ref(false)
+const selectedOrder   = ref(null)
+
+// ─── Status config ────────────────────────────────────────────────
+const STATUS_LABEL_MAP = {
+  PENDING:        'Pending',
+  PAID:           'Paid',
+  CONFIRMED:      'Confirmed',
+  PROCESSING:     'Processing',
+  SHIPPED:        'Shipped',
+  DELIVERED:      'Delivered',
+  CANCELLED:      'Cancelled',
+  PAYMENT_FAILED: 'Payment Failed',
+}
+
+const STATUS_TAB_MAP = {
+  PENDING:        'Pending',
+  PAID:           'Processing',
+  CONFIRMED:      'Processing',
+  PROCESSING:     'Processing',
+  SHIPPED:        'Shipped',
+  DELIVERED:      'Delivered',
+  CANCELLED:      'Cancelled',
+  PAYMENT_FAILED: 'Cancelled',
+}
+
+const TRACKABLE_STATUSES = new Set([
+  'PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'
+])
 
 const statusTabs = [
-  { label: 'All', value: 'all' },
+  { label: 'All',        value: 'all' },
   { label: 'Processing', value: 'Processing' },
-  { label: 'Shipped', value: 'Shipped' },
-  { label: 'Delivered', value: 'Delivered' },
-  { label: 'Cancelled', value: 'Cancelled' },
+  { label: 'Shipped',    value: 'Shipped' },
+  { label: 'Delivered',  value: 'Delivered' },
+  { label: 'Cancelled',  value: 'Cancelled' },
 ]
 
-onMounted(() => {
-  loadOrders()
-})
+// ─── Load orders ──────────────────────────────────────────────────
+onMounted(loadOrders)
 
 async function loadOrders() {
   try {
     const userId = Number(getUserId())
-
     if (!userId) {
       router.push('/login')
       return
@@ -165,98 +211,100 @@ async function loadOrders() {
 
     loading.value = true
 
+    // ✅ FIX: call directly
     const res = await fetchOrdersByUser(userId)
-
-    console.log('ORDERS RESPONSE:', res)
 
     const rawOrders = Array.isArray(res)
       ? res
-      : res?.orders || res?.data || res?.items || []
+      : (res?.orders || res?.data || res?.items || [])
 
-    orders.value = rawOrders.map(order => ({
-      id: order.id,
-      date: order.created_at || order.date,
-      status: normalizeStatus(order.status || order.delivery_status),
-      total: Number(order.final_amount || order.total_amount || order.gross_amount || 0),
-      items: (order.items || order.order_items || []).map(item => ({
-        id: item.id,
-        name: item.product_name || item.name || item.product?.name || 'Product',
-        qty: Number(item.quantity || item.qty || 1),
-        price: Number(item.price || 0),
-        size: item.variant_name || item.size || item.variant?.variant_name || '',
-        color: item.color || '',
-        image:
-          item.image ||
-          item.image_url ||
-          item.product_image ||
-          item.product?.image ||
-          'https://via.placeholder.com/80x80?text=IMG'
-      }))
-    }))
+    orders.value = rawOrders.map(order => {
+      const rawStatus = (order.status || 'PENDING').toUpperCase()
+
+      return {
+        id: order.id,
+        date: order.created_at || order.date,
+        rawStatus,
+        tabStatus: STATUS_TAB_MAP[rawStatus] || 'Processing',
+        total: Number(
+          order.final_amount ||
+          order.total_amount ||
+          order.gross_amount || 0
+        ),
+        items: (order.items || order.order_items || []).map(item => ({
+          id: item.id,
+          name: item.product_name || item.name || 'Product',
+          qty: Number(item.quantity || item.qty || 1),
+          price: Number(item.price || 0),
+          size: item.variant_name || item.size || '',
+          color: item.color_name || item.color || '',
+          image:
+            item.image ||
+            item.image_url ||
+            item.product_image ||
+            'https://via.placeholder.com/80x80?text=IMG'
+        }))
+      }
+    })
 
   } catch (err) {
-    console.error('LOAD ORDERS ERROR:', err)
+    console.error('loadOrders error:', err)
     orders.value = []
   } finally {
     loading.value = false
   }
 }
 
+// ─── Filtering ────────────────────────────────────────────────────
 const filteredOrders = computed(() => {
   if (activeTab.value === 'all') return orders.value
-  return orders.value.filter(o => o.status === activeTab.value)
+  return orders.value.filter(o => o.tabStatus === activeTab.value)
 })
 
-function normalizeStatus(status) {
-  const s = String(status || '').toLowerCase()
+// ─── Helpers ──────────────────────────────────────────────────────
+function statusLabel(rawStatus) {
+  return STATUS_LABEL_MAP[rawStatus] || rawStatus
+}
 
-  if (s.includes('deliver')) return 'Delivered'
-  if (s.includes('ship')) return 'Shipped'
-  if (s.includes('cancel')) return 'Cancelled'
+function statusClass(rawStatus) {
+  const s = rawStatus || ''
+  return {
+    'status-delivered':   s === 'DELIVERED',
+    'status-shipped':     s === 'SHIPPED',
+    'status-processing':  ['PENDING','PAID','CONFIRMED','PROCESSING'].includes(s),
+    'status-cancelled':   ['CANCELLED','PAYMENT_FAILED'].includes(s),
+  }
+}
 
-  return 'Processing'
+function isTrackable(rawStatus) {
+  return TRACKABLE_STATUSES.has(rawStatus)
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return '-'
-
   return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+    day: 'numeric', month: 'short', year: 'numeric'
   })
-}
-
-function statusClass(status) {
-  return {
-    'status-delivered': status === 'Delivered',
-    'status-shipped': status === 'Shipped',
-    'status-processing': status === 'Processing',
-    'status-cancelled': status === 'Cancelled',
-  }
-}
-
-function isTrackable(status) {
-  return ['Shipped', 'Processing'].includes(status)
 }
 
 function handleImgError(e) {
   e.target.src = 'https://via.placeholder.com/80x80?text=IMG'
 }
 
+// ─── Actions ──────────────────────────────────────────────────────
 function viewOrder(order) {
   router.push(`/order-confirmation/${order.id}`)
 }
 
-function trackOrder(order) {
-  router.push(`/order-confirmation/${order.id}`)
+function openTrack(order) {
+  selectedOrder.value = { id: order.id, status: order.rawStatus }
+  showTrackModal.value = true
 }
 
 function buyAgain(order) {
   console.log('Buy again:', order.id)
 }
 </script>
-
 <style scoped>
 *,
 *::before,
@@ -264,9 +312,7 @@ function buyAgain(order) {
   box-sizing: border-box;
 }
 
-/* ══════════════════════════════════════
-   PAGE SHELL
-══════════════════════════════════════ */
+/* ══ PAGE SHELL ═══════════════════════════════════════════════ */
 .orders-page {
   --teal:       #1a7a6e;
   --teal-dk:    #0e4d45;
@@ -291,9 +337,7 @@ function buyAgain(order) {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ══════════════════════════════════════
-   HEADER
-══════════════════════════════════════ */
+/* ══ HEADER ═══════════════════════════════════════════════════ */
 .orders-header {
   display: flex;
   align-items: center;
@@ -329,20 +373,10 @@ function buyAgain(order) {
   letter-spacing: -0.3px;
 }
 
-.page-sub {
-  font-size: 13px;
-  color: var(--muted);
-  margin: 0;
-}
+.page-sub { font-size: 13px; color: var(--muted); margin: 0; }
 
-/* ══════════════════════════════════════
-   FILTER TABS
-══════════════════════════════════════ */
-.filter-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+/* ══ FILTER TABS ══════════════════════════════════════════════ */
+.filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .filter-tab {
   padding: 7px 16px;
@@ -356,86 +390,38 @@ function buyAgain(order) {
   transition: all 0.15s;
 }
 
-.filter-tab:hover {
-  border-color: var(--teal-mid);
-  color: var(--teal);
-}
+.filter-tab:hover { border-color: var(--teal-mid); color: var(--teal); }
 
-.filter-tab.active {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
-}
+.filter-tab.active { background: var(--teal); border-color: var(--teal); color: #fff; }
 
-/* ══════════════════════════════════════
-   EMPTY STATE
-══════════════════════════════════════ */
+/* ══ EMPTY STATE ═════════════════════════════════════════════ */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 24px;
-  text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 80px 24px; text-align: center;
 }
 
 .empty-icon {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background: var(--teal-lt);
-  color: var(--teal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
+  width: 90px; height: 90px; border-radius: 50%;
+  background: var(--teal-lt); color: var(--teal);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
 }
 
-.empty-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 6px;
-}
-
-.empty-sub {
-  font-size: 14px;
-  color: var(--muted);
-  margin: 0 0 24px;
-}
+.empty-title { font-size: 18px; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+.empty-sub   { font-size: 14px; color: var(--muted); margin: 0 0 24px; }
 
 .btn-shop {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 24px;
-  border-radius: 12px;
-  border: none;
-  background: var(--teal);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 24px; border-radius: 12px; border: none;
+  background: var(--teal); color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, transform 0.15s;
 }
 
-.btn-shop:hover {
-  background: var(--teal-dk);
-  transform: translateY(-1px);
-}
+.btn-shop:hover { background: var(--teal-dk); transform: translateY(-1px); }
 
-/* ══════════════════════════════════════
-   ORDERS LIST
-══════════════════════════════════════ */
-.orders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+/* ══ ORDERS LIST ═════════════════════════════════════════════ */
+.orders-list { display: flex; flex-direction: column; gap: 20px; }
 
-/* ══════════════════════════════════════
-   ORDER CARD
-══════════════════════════════════════ */
+/* ══ ORDER CARD ══════════════════════════════════════════════ */
 .order-card {
   background: #fff;
   border: 1px solid var(--border);
@@ -445,353 +431,138 @@ function buyAgain(order) {
   transition: box-shadow 0.2s, transform 0.2s;
 }
 
-.order-card:hover {
-  box-shadow: 0 6px 24px rgba(26, 122, 110, 0.1);
-  transform: translateY(-2px);
-}
+.order-card:hover { box-shadow: 0 6px 24px rgba(26,122,110,0.1); transform: translateY(-2px); }
+
+.skeleton-card { padding: 16px; }
 
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Card Header ── */
+/* ─ Card Header ─ */
 .card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
   padding: 16px 22px;
   background: linear-gradient(90deg, #f0f9f7 0%, #f7fdfc 100%);
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-wrap: wrap; gap: 10px;
 }
 
-.order-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+.order-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.order-id {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--teal-dk);
-  letter-spacing: 0.3px;
-}
+.order-id    { font-size: 14px; font-weight: 700; color: var(--teal-dk); letter-spacing: 0.3px; }
+.order-dot   { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); opacity: 0.5; }
+.order-date  { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
 
-.order-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--muted);
-  opacity: 0.5;
-}
-
-.order-date {
-  font-size: 13px;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* ── Status Badge ── */
+/* ─ Status Badge ─ */
 .status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 13px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 13px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
 }
 
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
 .status-delivered  { background: #e6f9f0; color: #0e7a45; }
-.status-delivered .status-dot  { background: #0e7a45; }
+.status-delivered  .status-dot { background: #0e7a45; }
 
 .status-shipped    { background: var(--peacock-lt); color: var(--peacock); }
-.status-shipped .status-dot    { background: var(--peacock); }
+.status-shipped    .status-dot { background: var(--peacock); }
 
 .status-processing { background: #fff8e6; color: #b87a00; }
 .status-processing .status-dot { background: #f0a500; }
 
 .status-cancelled  { background: #fff0f0; color: #c0392b; }
-.status-cancelled .status-dot  { background: #c0392b; }
+.status-cancelled  .status-dot { background: #c0392b; }
 
-/* ── Card Body ── */
-.card-body {
-  padding: 20px 22px;
-}
+/* ─ Card Body ─ */
+.card-body { padding: 20px 22px; }
 
-/* ── Products ── */
-.products-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 18px;
-}
+/* ─ Products ─ */
+.products-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
 
 .product-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border-radius: var(--r);
-  border: 1px solid var(--border);
-  background: #fbfdfc;
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+  border-radius: var(--r); border: 1px solid var(--border); background: #fbfdfc;
   transition: background 0.15s;
 }
 
-.product-row:hover {
-  background: var(--teal-lt);
-  border-color: #c4deda;
-}
+.product-row:hover { background: var(--teal-lt); border-color: #c4deda; }
 
 .product-img-wrap {
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #f0f5f4;
-  border: 1px solid var(--border);
+  width: 64px; height: 64px; border-radius: 10px; overflow: hidden;
+  flex-shrink: 0; background: #f0f5f4; border: 1px solid var(--border);
 }
 
-.product-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.product-img { width: 100%; height: 100%; object-fit: cover; }
 
-.product-info {
-  flex: 1;
-  min-width: 0;
-}
+.product-info { flex: 1; min-width: 0; }
 
 .product-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .product-meta {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  font-size: 12px; color: var(--muted); margin: 0;
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
 }
 
-.meta-sep {
-  opacity: 0.4;
-}
+.meta-sep { opacity: 0.4; }
 
-.product-price {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--teal-dk);
-  flex-shrink: 0;
-}
+.product-price { font-size: 15px; font-weight: 700; color: var(--teal-dk); flex-shrink: 0; }
 
-/* ── Footer ── */
+/* ─ Footer ─ */
 .card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px; padding-top: 16px; border-top: 1px solid var(--border);
 }
 
-.total-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.total-row  { display: flex; flex-direction: column; gap: 2px; }
+.total-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+.total-amount { font-size: 20px; font-weight: 800; color: var(--teal-dk); letter-spacing: -0.3px; }
 
-.total-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.total-amount {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--teal-dk);
-  letter-spacing: -0.3px;
-}
-
-/* ── Action Buttons ── */
-.action-btns {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/* ─ Buttons ─ */
+.action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  border: 1.5px solid transparent;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; white-space: nowrap;
 }
 
-.btn:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
+.btn:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
 
-.btn-outline {
-  background: #fff;
-  border-color: var(--border);
-  color: var(--text);
-}
+.btn-outline { background: #fff; border-color: var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--teal-lt); border-color: var(--teal-mid); color: var(--teal); }
 
-.btn-outline:hover {
-  background: var(--teal-lt);
-  border-color: var(--teal-mid);
-  color: var(--teal);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--teal), var(--peacock));
-  border-color: transparent;
-  color: #fff;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--teal-dk), #005f6b);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(26, 122, 110, 0.28);
-}
-
+.btn-primary { background: linear-gradient(135deg, var(--teal), var(--peacock)); border-color: transparent; color: #fff; }
+.btn-primary:hover { background: linear-gradient(135deg, var(--teal-dk), #005f6b); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,122,110,0.28); }
 .btn-primary:active { transform: scale(0.97); }
 
-/* ══════════════════════════════════════
-   TABLET  681px – 1024px
-══════════════════════════════════════ */
+/* ══ RESPONSIVE ══════════════════════════════════════════════ */
 @media (min-width: 681px) and (max-width: 1024px) {
-  .orders-page {
-    padding: 32px 28px 48px;
-  }
-
-  .orders-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .orders-page { padding: 32px 28px 48px; }
+  .orders-header { flex-direction: column; align-items: flex-start; }
 }
 
-/* ══════════════════════════════════════
-   MOBILE  ≤ 680px
-══════════════════════════════════════ */
 @media (max-width: 680px) {
-  .orders-page {
-    padding: 24px 16px 48px;
-    min-height: 100vh;
-  }
-
-  .orders-header {
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 24px;
-  }
-
+  .orders-page { padding: 24px 16px 48px; }
+  .orders-header { flex-direction: column; align-items: flex-start; margin-bottom: 24px; }
   .page-title { font-size: 22px; }
-
-  .filter-tabs {
-    gap: 6px;
-  }
-
-  .filter-tab {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  .card-header {
-    padding: 14px 16px;
-  }
-
-  .card-body {
-    padding: 16px;
-  }
-
-  .product-row {
-    gap: 10px;
-    padding: 10px 12px;
-  }
-
-  .product-img-wrap {
-    width: 54px;
-    height: 54px;
-  }
-
-  .product-name { font-size: 13px; }
-  .product-price { font-size: 14px; }
-
-  .card-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .action-btns {
-    width: 100%;
-    justify-content: stretch;
-  }
-
-  .btn {
-    flex: 1;
-    justify-content: center;
-    padding: 9px 10px;
-    font-size: 12px;
-  }
-
+  .card-header { padding: 14px 16px; }
+  .card-body { padding: 16px; }
+  .product-row { gap: 10px; padding: 10px 12px; }
+  .product-img-wrap { width: 54px; height: 54px; }
+  .card-footer { flex-direction: column; align-items: flex-start; }
+  .action-btns { width: 100%; justify-content: stretch; }
+  .btn { flex: 1; justify-content: center; padding: 9px 10px; font-size: 12px; }
   .total-amount { font-size: 18px; }
 }
 
-/* ══════════════════════════════════════
-   SMALL MOBILE  ≤ 390px
-══════════════════════════════════════ */
 @media (max-width: 390px) {
   .orders-page { padding: 20px 12px 40px; }
-
-  .product-img-wrap {
-    width: 46px;
-    height: 46px;
-  }
-
-  .product-meta { font-size: 11px; }
-
-  .filter-tab {
-    padding: 5px 10px;
-    font-size: 11px;
-  }
+  .product-img-wrap { width: 46px; height: 46px; }
 }
 </style>

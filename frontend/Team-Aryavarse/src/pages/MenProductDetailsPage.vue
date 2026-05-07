@@ -1,9 +1,11 @@
 <template>
   <div v-if="product" class="men-product-page">
     <div class="product-page">
+
       <!-- LEFT: thumbs + main image -->
       <div class="left-wrap">
         <div class="left">
+          <!-- thumbnails -->
           <div class="thumbs">
             <img
               v-for="img in displayImages"
@@ -14,6 +16,7 @@
             />
           </div>
 
+          <!-- main image -->
           <div class="main-image-box" @click="openImageDialog">
             <img :src="selectedImage" class="main-image" />
           </div>
@@ -25,7 +28,7 @@
         <p class="tag">{{ productTag }}</p>
         <h1>{{ product.title || product.name || 'Product' }}</h1>
 
-        <div class="rating-row">
+        <div class="rating-row"  @click="scrollToReviews" style="cursor:pointer;">
           <span class="stars">{{ ratingStars }}</span>
           <span class="rating-val">{{ displayRating }}</span>
         </div>
@@ -73,11 +76,10 @@
 
           <div class="size-options">
             <button
-              v-for="s in sizes"
-              :key="s"
+              v-for="s in sizes" :key="s"
               class="size-btn"
               :class="{ active: selectedSize === s }"
-              @click="selectedSize = s; sizeError = false"
+              @click="selectedSize = s; sizeError = false;"
             >
               {{ s }}
             </button>
@@ -89,19 +91,22 @@
         </div>
 
         <!-- CUSTOMIZATION -->
-        <ProductCustomization
-          :product-id="product?.id"
-          @customization-updated="onCustomizationUpdated"
-        />
+      <ProductCustomization
+        :product-id="product?.id"
+        @customization-updated="onCustomizationUpdated"
+      />
 
         <!-- BUTTONS -->
         <div class="btns">
+
+          <!-- QTY BOX -->
           <div class="detail-qty-box">
             <button class="detail-qty-btn" @click="decreaseQty">−</button>
             <span class="detail-qty-value">{{ quantity }}</span>
             <button class="detail-qty-btn" @click="increaseQty">+</button>
           </div>
 
+          <!-- ref added for flying animation origin -->
           <button class="cart-btn" ref="cartBtnRef" @click="handleAddToCart">
             Add to Cart
           </button>
@@ -109,9 +114,10 @@
           <button class="buy-btn" @click="handleBuyNow">
             Buy Now
           </button>
+
         </div>
 
-        <!-- FLYING IMAGE -->
+        <!-- FLYING IMAGE ELEMENT -->
         <img
           v-if="flyingVisible"
           :src="selectedImage"
@@ -120,25 +126,26 @@
           :style="flyingStyle"
           ref="flyingImgRef"
         />
-
+        
         <!-- Delivery features -->
         <div class="delivery-cols">
-          <div
-            class="delivery-col"
-            v-for="(feature, index) in deliveryFeatures"
-            :key="index"
-          >
-            <i :class="feature.icon"></i>
-            <p class="delivery-title" v-html="feature.title"></p>
-          </div>
-        </div>
-
+  <div 
+    class="delivery-col"
+    v-for="(item, index) in deliveryFeatures"
+    :key="index"
+  >
+    <i :class="item.icon"></i>
+    <p class="delivery-title" v-html="item.title"></p>
+  </div>
+</div>
+        
         <!-- PIN CODE SECTION -->
         <div class="section delivery-details">
           <h3>Delivery Details</h3>
 
           <div class="pincode-checker">
             <div class="input-btn-group">
+              <!--  maxlength 6, @keyup.enter support -->
               <q-input
                 v-model="pincode"
                 type="text"
@@ -159,6 +166,7 @@
               />
             </div>
 
+            <!--  6-digit validation message -->
             <div v-if="pincode.length > 0 && pincode.length < 6" class="error-msg">
               Pincode must be 6 digits
             </div>
@@ -168,7 +176,7 @@
             </div>
 
             <div v-if="deliveryStatus" class="delivery-messages">
-              <div class="delivery-date" v-if="deliveryStatus.deliveryDate">
+              <div class="delivery-date">
                 <i class="bi bi-truck"></i>
                 {{ deliveryStatus.deliveryDate }}
               </div>
@@ -182,27 +190,51 @@
 
         <!-- DETAILS ACCORDION -->
         <div class="product-info-right">
-          <div
-            v-for="(section, index) in accordionSections"
-            :key="index"
-            class="section accordion"
-          >
-            <div
-              class="accordion-header"
-              @click="activeAccordion = activeAccordion === index ? null : index"
-            >
-              <span>{{ section.title }}</span>
-              <q-icon :name="activeAccordion === index ? 'remove' : 'add'" />
-            </div>
 
-            <div v-show="activeAccordion === index" class="accordion-content">
-              <p v-if="section.description">{{ section.description }}</p>
-              <ul v-if="section.points?.length">
-                <li v-for="(item, idx) in section.points" :key="idx">{{ item }}</li>
+          <!-- Details & Fit -->
+          <div class="section accordion">
+            <div class="accordion-header" @click="activeAccordion = activeAccordion === 0 ? null : 0">
+              <span>Details & Fit</span>
+              <q-icon :name="activeAccordion === 0 ? 'remove' : 'add'" />
+            </div>
+            <div v-show="activeAccordion === 0" class="accordion-content">
+              <p>{{ product.description }}</p>
+              <ul>
+                <li v-for="(item,index) in product.details" :key="index">{{ item }}</li>
               </ul>
             </div>
           </div>
+
+          <!-- Fabric & Care -->
+          <div class="section accordion">
+            <div class="accordion-header" @click="activeAccordion = activeAccordion === 1 ? null : 1">
+              <span>Fabric & Care</span>
+              <q-icon :name="activeAccordion === 1 ? 'remove' : 'add'" />
+            </div>
+            <div v-show="activeAccordion === 1" class="accordion-content">
+              <p>{{ product.fabricDescription }}</p>
+              <ul>
+                <li v-for="(item,index) in product.fabricCare" :key="index">{{ item }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Return & Exchange -->
+          <div class="section accordion">
+            <div class="accordion-header" @click="activeAccordion = activeAccordion === 2 ? null : 2">
+              <span>Return & Exchange</span>
+              <q-icon :name="activeAccordion === 2 ? 'remove' : 'add'" />
+            </div>
+            <div v-show="activeAccordion === 2" class="accordion-content">
+              <p>{{ product.returnDescription }}</p>
+              <ul>
+                <li v-for="(item,index) in product.returnPoints" :key="index">{{ item }}</li>
+              </ul>
+            </div>
+          </div>
+
         </div>
+
       </div>
     </div>
 
@@ -219,38 +251,32 @@
           <h3>Size Chart</h3>
           <button class="size-chart-close" @click="sizeChartDialog = false">✕</button>
         </div>
-
         <div class="size-chart-tabs">
-          <button class="tab" :class="{ active: activeTab === 'size' }" @click="activeTab = 'size'">
-            Size
-          </button>
-          <button class="tab" :class="{ active: activeTab === 'measure' }" @click="activeTab = 'measure'">
-            How to Measure
-          </button>
+          <button class="tab" :class="{ active: activeTab === 'size' }" @click="activeTab = 'size'">Size</button>
+          <button class="tab" :class="{ active: activeTab === 'measure' }" @click="activeTab = 'measure'">How to Measure</button>
         </div>
-
         <div class="size-chart-content">
-          <img v-if="activeTab === 'size'" :src="sizeChartImage" class="size-chart-img" />
-          <img v-else :src="measureImage" class="size-chart-img" />
+          <img v-if="activeTab === 'size'" :src="sizeChartImg" class="size-chart-img" />
+          <img v-else :src="measureImg" class="size-chart-img" />
         </div>
       </div>
     </q-dialog>
-  </div>
 
-  <div v-else-if="loading" class="men-product-page">
-    <div class="product-page">
-      <div class="right">
-        <h2>Loading product...</h2>
-      </div>
-    </div>
-  </div>
+<!-- REVIEWS SECTION -->
+<div class="reviews-section-wrapper">
+  <ProductReviews
+    ref="reviewsRef"
 
-  <div v-else class="men-product-page">
-    <div class="product-page">
-      <div class="right">
-        <h2>Product not found</h2>
-      </div>
-    </div>
+    :reviews="product?.reviews || []"
+
+    :productId="product?.id"
+
+    @updateReviews="addReview"
+  />
+</div>
+```
+
+
   </div>
 </template>
 
@@ -262,7 +288,33 @@ import { addToCart } from 'src/stores/shop'
 import ProductCustomization from 'src/components/Productcustomization.vue'
 import sizeChartFallback from 'src/assets/size_chart/size-chart.png'
 import measureFallback from 'src/assets/size_chart/measure.png'
+import ProductReviews from 'components/ProductReviews.vue'
 
+
+//scroll
+const reviewsRef = ref(null)
+
+const scrollToReviews = () => {
+  const el = reviewsRef.value?.$el
+  if (!el) return
+
+  el.scrollIntoView({ behavior: 'smooth' })
+
+  el.classList.add('highlight')
+  setTimeout(() => {
+    el.classList.remove('highlight')
+  }, 1000)
+}
+
+//add review
+
+const addReview = (newReview) => {
+  if (!product.value.reviews) {
+    product.value.reviews = []
+  }
+
+  product.value.reviews.push(newReview)
+}
 const route = useRoute()
 const router = useRouter()
 

@@ -50,7 +50,9 @@ export default defineConfig(() => {
 
     // Dev Server
     devServer: {
-      open: true
+      open: true,
+      port: 9001
+
     },
 
     // Framework

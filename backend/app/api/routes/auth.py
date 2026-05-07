@@ -95,13 +95,14 @@ def signup_complete(data: SignupComplete, db: Session = Depends(get_db)):
 def login_with_password(data: PasswordLogin, db: Session = Depends(get_db)):
     identifier = data.identifier.strip()
 
-    # If it's a phone number, look up the email in DB first
     keycloak_username = identifier
+
     if identifier.isdigit() and len(identifier) == 10:
         user = get_user_by_phone(db, identifier)
         if not user:
             raise HTTPException(status_code=401, detail="No account found with this phone number")
         keycloak_username = user.email
+
     elif "@" not in identifier:
         raise HTTPException(
             status_code=400,
@@ -113,14 +114,13 @@ def login_with_password(data: PasswordLogin, db: Session = Depends(get_db)):
         f"/protocol/openid-connect/token"
     )
 
-    # ✅ client_secret is REQUIRED for confidential clients
     res = requests.post(token_url, data={
-        "grant_type":    "password",
-        "client_id":     settings.KEYCLOAK_CLIENT_ID,
+        "grant_type": "password",
+        "client_id": settings.KEYCLOAK_CLIENT_ID,
         "client_secret": settings.KEYCLOAK_CLIENT_SECRET,
-        "username":      keycloak_username,
-        "password":      data.password,
-        "scope":         "openid email profile",
+        "username": keycloak_username,
+        "password": data.password,
+        "scope": "openid email profile",
     }, timeout=10)
 
     if res.status_code != 200:
@@ -130,124 +130,70 @@ def login_with_password(data: PasswordLogin, db: Session = Depends(get_db)):
             err_msg = "Invalid credentials"
         raise HTTPException(status_code=401, detail=err_msg)
 
-    token_json   = res.json()
+    token_json = res.json()
     access_token = token_json.get("access_token")
 
-    # Get user info
     userinfo_url = (
         f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.KEYCLOAK_REALM}"
         f"/protocol/openid-connect/userinfo"
     )
+
     userinfo_res = requests.get(
         userinfo_url,
         headers={"Authorization": f"Bearer {access_token}"},
         timeout=10,
     )
+
     if userinfo_res.status_code != 200:
         raise HTTPException(status_code=400, detail="Failed to fetch user info from Keycloak")
 
-    userinfo       = userinfo_res.json()
-    keycloak_id    = userinfo.get("sub")
-    email          = userinfo.get("email")
-    name           = userinfo.get("name") or (email.split("@")[0] if email else "User")
+    userinfo = userinfo_res.json()
+
+    keycloak_id = userinfo.get("sub")
+    email = userinfo.get("email")
+    name = userinfo.get("name") or (email.split("@")[0] if email else "User")
     email_verified = userinfo.get("email_verified", False)
 
-    # Block if email not verified
+    if not keycloak_id or not email:
+        raise HTTPException(status_code=400, detail="Invalid user info from Keycloak")
+
     if not email_verified:
         raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
 
-    # Upsert in DB
     user = get_user_by_keycloak_id(db, keycloak_id)
+
     if not user:
         create_user_in_db(
-            db=db, name=name, email=email, phone=None,
-            keycloak_id=keycloak_id, is_email_verified=True,
+            db=db,
+            name=name,
+            email=email,
+            phone=None,
+            keycloak_id=keycloak_id,
+            is_email_verified=True,
         )
+
+        user = get_user_by_keycloak_id(db, keycloak_id)
+
     else:
         _mark_email_verified_in_db(db, keycloak_id)
 
+    user_id = getattr(user, "id", None)
+
+    if not user_id:
+        raise HTTPException(status_code=500, detail="User found/created but user_id missing")
+
     return {
         "access_token": access_token,
-        "id_token":     token_json.get("id_token"),
+        "id_token": token_json.get("id_token"),
         "user": {
-            "email":       email,
-            "name":        name,
-            "keycloak_id": keycloak_id,        
-            "user_type": user.user_type if user else "customer"
-
+            "id": user_id,
+            "user_id": user_id,
+            "email": getattr(user, "email", email),
+            "name": getattr(user, "name", name),
+            "keycloak_id": getattr(user, "keycloak_id", keycloak_id),
+            "user_type": getattr(user, "user_type", "customer") or "customer"
         }
     }
-
-
-# =========================
-# FORGOT PASSWORD
-# =========================
-@router.post("/forgot-password/initiate")
-def forgot_password_init(data: ForgotPasswordInit, db: Session = Depends(get_db)):
-    phone = data.phone.strip()
-    if not phone.isdigit() or len(phone) != 10:
-        raise HTTPException(status_code=400, detail="Phone number must be exactly 10 digits")
-    user = get_user_by_phone(db, phone)
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this phone number")
-    return initiate_forgot_password(phone)
-
-
-@router.post("/forgot-password/verify")
-def forgot_password_verify(data: ForgotPasswordVerify):
-    phone = data.phone.strip()
-    if not phone.isdigit() or len(phone) != 10:
-        raise HTTPException(status_code=400, detail="Phone number must be exactly 10 digits")
-    return verify_forgot_otp(phone, data.otp)
-
-
-@router.post("/forgot-password/reset")
-def forgot_password_reset(data: ForgotPasswordReset, db: Session = Depends(get_db)):
-    if data.new_password != data.confirm_password:
-        raise HTTPException(status_code=400, detail="Passwords do not match")
-    if len(data.new_password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-    phone = data.phone.strip()
-    user  = get_user_by_phone(db, phone)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return reset_password_with_token(
-        phone=phone,
-        reset_token=data.reset_token,
-        new_password=data.new_password,
-        keycloak_id=user.keycloak_id,
-    )
-
-
-# =========================
-# VERIFY TOKEN
-# =========================
-@router.get("/verify-token")
-def verify_token_endpoint(request: Request):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing Authorization header")
-
-    token = auth_header.split(" ", 1)[1]
-    userinfo_url = (
-        f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.KEYCLOAK_REALM}"
-        f"/protocol/openid-connect/userinfo"
-    )
-    res = requests.get(userinfo_url, headers={"Authorization": f"Bearer {token}"}, timeout=10)
-    if res.status_code != 200:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    userinfo = res.json()
-    if not userinfo.get("email_verified", False):
-        raise HTTPException(status_code=403, detail="EMAIL_NOT_VERIFIED")
-
-    return {
-        "valid":       True,
-        "keycloak_id": userinfo.get("sub"),
-        "email":       userinfo.get("email"),
-        "name":        userinfo.get("name"),
-    }
-
 
 # =========================
 # GOOGLE LOGIN

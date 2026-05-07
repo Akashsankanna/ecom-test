@@ -38,3 +38,13 @@ export async function cancelOrder(orderId, userId) {
   })
   return response.data
 }
+// =============================
+// TRACK ORDER
+// =============================
+export async function trackOrder(orderId, userId) {
+  const response = await api.get(`/orders/${orderId}`, {
+    params: { user_id: userId }
+  })
+
+  return response.data
+}
