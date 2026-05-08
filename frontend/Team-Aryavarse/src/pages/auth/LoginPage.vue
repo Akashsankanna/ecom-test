@@ -3,6 +3,12 @@
     <h3>Login</h3>
     <p class="sub">Welcome back! Login to continue shopping</p>
 
+    <!-- ✅ Session expired notice — shown when auto-logged out -->
+    <div v-if="sessionExpired" class="session-expired-box">
+      <p>⏱️ Your session has expired.</p>
+      <p>Please log in again to continue.</p>
+    </div>
+
     <!-- Email not verified notice -->
     <div v-if="showVerifyMsg" class="verify-box">
       <p>📧 Please verify your email first.</p>
@@ -11,10 +17,6 @@
     </div>
 
     <template v-else>
-      <!--
-        identifier = phone number (10 digits) OR email
-        Backend resolves phone → email → Keycloak login
-      -->
       <input
         v-model="identifier"
         type="text"
@@ -34,7 +36,6 @@
         {{ loading ? 'LOGGING IN...' : 'LOGIN' }}
       </button>
 
-      <!-- Forgot Password -->
       <p class="forgot" @click="$router.push('/forgot-password')">
         Forgot Password?
       </p>
@@ -54,20 +55,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authAPI } from 'src/api/auth'
 import { useAuthStore } from 'src/stores/auth'
 
-const router = useRouter()
-const route = useRoute()
+const router    = useRouter()
+const route     = useRoute()
 const authStore = useAuthStore()
 
-const identifier = ref('')
-const password = ref('')
-const error = ref('')
-const loading = ref(false)
+const identifier   = ref('')
+const password     = ref('')
+const error        = ref('')
+const loading      = ref(false)
 const showVerifyMsg = ref(false)
+
+// ✅ Show banner when redirected here due to expired session
+const sessionExpired = computed(() => route.query.session === 'expired')
 
 async function login() {
   error.value = ''
@@ -97,15 +101,16 @@ async function login() {
     }
 
     await authStore.setAuth(res.access_token, {
-      id: res?.user?.id,
-      email: res?.user?.email,
-      keycloak_id: res?.user?.keycloak_id,
-      name: res?.user?.name,
-      id_token: res?.id_token,
+      id          : res?.user?.id,
+      email       : res?.user?.email,
+      keycloak_id : res?.user?.keycloak_id,
+      name        : res?.user?.name,
+      id_token    : res?.id_token,
     })
 
     const redirectPath = route.query.redirect || '/'
     router.push(redirectPath)
+
   } catch (e) {
     if (e?.response?.status === 403) {
       showVerifyMsg.value = true
@@ -167,6 +172,22 @@ function loginWithGoogle() {
   p {
     margin: 6px 0;
     font-size: 14px;
+  }
+}
+
+/* ✅ Session expired banner */
+.session-expired-box {
+  text-align: center;
+  padding: 14px 16px;
+  background: #fff3f3;
+  border: 1px solid #ffcccc;
+  border-radius: 8px;
+  margin-bottom: 14px;
+
+  p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #c0392b;
   }
 }
 </style>

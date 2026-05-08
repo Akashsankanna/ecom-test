@@ -28,7 +28,7 @@
         <p class="tag">{{ productTag }}</p>
         <h1>{{ product.title || product.name || 'Product' }}</h1>
 
-        <div class="rating-row"  @click="scrollToReviews" style="cursor:pointer;">
+        <div class="rating-row" @click="scrollToReviews" style="cursor:pointer;">
           <span class="stars">{{ ratingStars }}</span>
           <span class="rating-val">{{ displayRating }}</span>
         </div>
@@ -91,10 +91,10 @@
         </div>
 
         <!-- CUSTOMIZATION -->
-      <ProductCustomization
-        :product-id="product?.id"
-        @customization-updated="onCustomizationUpdated"
-      />
+        <ProductCustomization
+          :product-id="product?.id"
+          @customization-updated="onCustomizationUpdated"
+        />
 
         <!-- BUTTONS -->
         <div class="btns">
@@ -126,26 +126,25 @@
           :style="flyingStyle"
           ref="flyingImgRef"
         />
-        
+
         <!-- Delivery features -->
         <div class="delivery-cols">
-  <div 
-    class="delivery-col"
-    v-for="(item, index) in deliveryFeatures"
-    :key="index"
-  >
-    <i :class="item.icon"></i>
-    <p class="delivery-title" v-html="item.title"></p>
-  </div>
-</div>
-        
+          <div
+            class="delivery-col"
+            v-for="(item, index) in deliveryFeatures"
+            :key="index"
+          >
+            <i :class="item.icon"></i>
+            <p class="delivery-title" v-html="item.title"></p>
+          </div>
+        </div>
+
         <!-- PIN CODE SECTION -->
         <div class="section delivery-details">
           <h3>Delivery Details</h3>
 
           <div class="pincode-checker">
             <div class="input-btn-group">
-              <!--  maxlength 6, @keyup.enter support -->
               <q-input
                 v-model="pincode"
                 type="text"
@@ -166,7 +165,6 @@
               />
             </div>
 
-            <!--  6-digit validation message -->
             <div v-if="pincode.length > 0 && pincode.length < 6" class="error-msg">
               Pincode must be 6 digits
             </div>
@@ -262,20 +260,15 @@
       </div>
     </q-dialog>
 
-<!-- REVIEWS SECTION -->
-<div class="reviews-section-wrapper">
-  <ProductReviews
-    ref="reviewsRef"
-
-    :reviews="product?.reviews || []"
-
-    :productId="product?.id"
-
-    @updateReviews="addReview"
-  />
-</div>
-```
-
+    <!-- REVIEWS SECTION -->
+    <div class="reviews-section-wrapper">
+      <ProductReviews
+        ref="reviewsRef"
+        :reviews="product?.reviews || []"
+        :productId="product?.id"
+        @updateReviews="addReview"
+      />
+    </div>
 
   </div>
 </template>
@@ -286,12 +279,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from 'boot/axios'
 import { addToCart } from 'src/stores/shop'
 import ProductCustomization from 'src/components/Productcustomization.vue'
-import sizeChartFallback from 'src/assets/size_chart/size-chart.png'
-import measureFallback from 'src/assets/size_chart/measure.png'
+import sizeChartImg from 'src/assets/size_chart/size-chart.png'
+import measureImg from 'src/assets/size_chart/measure.png'
 import ProductReviews from 'components/ProductReviews.vue'
 
-
-//scroll
+// scroll to reviews
 const reviewsRef = ref(null)
 
 const scrollToReviews = () => {
@@ -306,15 +298,14 @@ const scrollToReviews = () => {
   }, 1000)
 }
 
-//add review
-
+// add review callback from ProductReviews emit
 const addReview = (newReview) => {
   if (!product.value.reviews) {
     product.value.reviews = []
   }
-
   product.value.reviews.push(newReview)
 }
+
 const route = useRoute()
 const router = useRouter()
 
@@ -385,6 +376,7 @@ const fetchProduct = async () => {
       name: data.name || data.title || 'Product',
       image_url: data.image_url || data.image || '',
       image: data.image || data.image_url || '',
+      reviews: data.reviews || [],
       variants
     }
 
@@ -558,31 +550,6 @@ const productTag = computed(() => {
     product.value?.category_name ||
     product.value?.collection_name ||
     'Premium Collection'
-})
-
-const sizeChartImage = computed(() => product.value?.size_chart_image || sizeChartFallback)
-const measureImage = computed(() => product.value?.measure_image || measureFallback)
-
-const accordionSections = computed(() => {
-  if (!product.value) return []
-
-  return [
-    {
-      title: 'Details & Fit',
-      description: product.value.details_and_fit || product.value.description || '',
-      points: product.value.details || []
-    },
-    {
-      title: 'Fabric & Care',
-      description: product.value.fabric_and_care || product.value.fabricDescription || product.value.fabric_description || '',
-      points: product.value.fabricCare || product.value.fabric_care || []
-    },
-    {
-      title: 'Return & Exchange',
-      description: product.value.return_and_exchange || product.value.returnDescription || product.value.return_description || '',
-      points: product.value.returnPoints || product.value.return_points || []
-    }
-  ].filter(section => section.description || section.points?.length)
 })
 
 const deliveryFeatures = computed(() => {

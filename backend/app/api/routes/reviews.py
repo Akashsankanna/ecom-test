@@ -248,3 +248,74 @@ def admin_rating_summary(
     return ReviewService.get_rating_summary(
         db=db,
     )
+# ADD these two routes after the existing submit_review POST route
+# and before the GET /{product_id} route
+
+# =====================================================
+# GET CURRENT USER'S REVIEW FOR A PRODUCT
+# Used by frontend to detect existing review + prefill
+# =====================================================
+@router.get(
+    "/my/{product_id}",
+    response_model=Optional[ReviewOut],
+)
+def get_my_review(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Returns the authenticated user's review for this product.
+    Returns null (HTTP 200 with null body) if no review exists yet.
+    Frontend uses this to decide Write vs Edit mode.
+    """
+    if isinstance(current_user, dict):
+        keycloak_id = current_user.get("sub")
+    else:
+        keycloak_id = getattr(current_user, "keycloak_id", None)
+
+    if not keycloak_id:
+        raise HTTPException(status_code=401, detail="Invalid token.")
+
+    review = ReviewService.get_user_review(
+        db=db,
+        keycloak_id=keycloak_id,
+        product_id=product_id,
+    )
+
+    return review  # None serializes to null in JSON — frontend handles this
+
+
+# =====================================================
+# UPDATE EXISTING REVIEW
+# =====================================================
+@router.put(
+    "/{review_id}",
+    response_model=ReviewOut,
+)
+def update_review(
+    review_id: int,
+    data: ReviewCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Update an existing review. Only the owner can update.
+    Uses ReviewCreate schema — same fields as create.
+    """
+    if isinstance(current_user, dict):
+        keycloak_id = current_user.get("sub")
+    else:
+        keycloak_id = getattr(current_user, "keycloak_id", None)
+
+    if not keycloak_id:
+        raise HTTPException(status_code=401, detail="Invalid token.")
+
+    return ReviewService.update_review(
+        db=db,
+        keycloak_id=keycloak_id,
+        review_id=review_id,
+        rating=data.rating,
+        title=data.title,
+        comment=data.comment,
+    )

@@ -26,10 +26,14 @@
         <p class="tag">Premium Women Collection</p>
         <h1>{{ product.title }}</h1>
 
-        <div class="rating-row">
-          <span class="stars">★★★★★</span>
-          <span class="rating">{{ product.rating }}</span>
-        </div>
+        <div
+  class="rating-row"
+  @click="scrollToReviews"
+  style="cursor:pointer;"
+>
+  <span class="stars">{{ ratingStars }}</span>
+  <span class="rating">{{ displayRating }}</span>
+</div>
 
         <div class="price-row">
           <h2>
@@ -298,7 +302,17 @@
         </div>
       </div>
     </q-dialog>
+ <!-- REVIEWS SECTION -->
+    <div class="reviews-section-wrapper">
 
+      <ProductReviews
+        ref="reviewsRef"
+        :reviews="product?.reviews || []"
+        :productId="product?.id"
+        @updateReviews="addReview"
+      />
+
+    </div>
   </div>
 </template>
 
@@ -310,6 +324,7 @@ import { addToCart } from 'src/stores/shop'
 import sizeChartImg from 'src/assets/size_chart/size-chart.png'
 import measureImg from 'src/assets/size_chart/measure.png'
 import ProductCustomization from 'components/Productcustomization.vue'
+import ProductReviews from 'components/ProductReviews.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -343,6 +358,33 @@ const flyingImgRef = ref(null)
 const flyingVisible = ref(false)
 const flyingActive = ref(false)
 const flyingStyle = ref({})
+
+// REVIEW SECTION
+const reviewsRef = ref(null)
+
+const scrollToReviews = () => {
+  const el = reviewsRef.value?.$el
+
+  if (!el) return
+
+  el.scrollIntoView({
+    behavior: 'smooth'
+  })
+
+  el.classList.add('highlight')
+
+  setTimeout(() => {
+    el.classList.remove('highlight')
+  }, 1000)
+}
+
+const addReview = (newReview) => {
+  if (!product.value.reviews) {
+    product.value.reviews = []
+  }
+
+  product.value.reviews.push(newReview)
+}
 
 const normalizeProduct = (p) => {
   const productId = Number(p.product_id || p.db_product_id || p.id)
@@ -450,7 +492,7 @@ const normalizeProduct = (p) => {
     colors,
     sizes,
     variants,
-
+  reviews: p.reviews || [],
     details_and_fit: p.details_and_fit || '',
     fabric_and_care: p.fabric_and_care || '',
     return_and_exchange: p.return_and_exchange || '',
@@ -589,7 +631,30 @@ const changeColor = (colorName) => {
   selectedColorId.value = colorObj.color_id
   selectedColor.value = colorObj.name || colorObj.color_name || colorObj.color
 }
+const displayRating = computed(() => {
+  return Number(
+    product.value?.rating ||
+    product.value?.avg_rating ||
+    4.8
+  ).toFixed(1)
+})
 
+const ratingStars = computed(() => {
+  const rating = Math.round(
+    Number(
+      product.value?.rating ||
+      product.value?.avg_rating ||
+      4.8
+    )
+  )
+
+  return '★'.repeat(
+    Math.max(0, Math.min(5, rating))
+  ) +
+  '☆'.repeat(
+    Math.max(0, 5 - rating)
+  )
+})
 const discountPercent = computed(() => {
   const p = product.value
   if (!p?.oldPrice || !p?.price) return 0
@@ -768,4 +833,23 @@ onMounted(() => {
 
 <style scoped lang="scss">
 @import 'src/css/women-product-details.scss';
+.reviews-section-wrapper {
+  margin-top: 50px;
+}
+
+.highlight {
+  animation: reviewHighlight 1s ease;
+}
+
+@keyframes reviewHighlight {
+
+  0% {
+    background: rgba(255, 192, 203, 0.25);
+  }
+
+  100% {
+    background: transparent;
+  }
+
+}
 </style>

@@ -219,9 +219,9 @@ const normalizeProduct = (p) => {
     title: p.name || p.title || 'Product',
     name: p.name || p.title || 'Product',
     description: p.description || '',
-
+                                                                    
     price: Number(defaultVariant?.price || p.price || 0),
-
+                                                             
     image,
     image_url: image,
     images: [

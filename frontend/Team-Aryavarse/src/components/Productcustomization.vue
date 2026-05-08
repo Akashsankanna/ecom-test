@@ -15,7 +15,7 @@
         color="teal"
       />
     </div>
-
+  
     <!-- Expandable Body -->
     <transition name="slide-down">
       <div v-if="isExpanded" class="custom-body">

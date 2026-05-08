@@ -208,3 +208,53 @@ class ReviewRepository:
             text("SELECT * FROM product_rating_summary ORDER BY average_rating DESC NULLS LAST")
         )
         return [dict(row) for row in result.mappings()]
+    # ADD these two methods inside ReviewRepository class
+# Place them after check_duplicate()
+
+    # ─────────────────────────────────────────
+    # GET USER'S EXISTING REVIEW FOR PRODUCT
+    # ─────────────────────────────────────────
+    @staticmethod
+    def get_user_review_for_product(
+        db: Session,
+        user_id: int,
+        product_id: int,
+    ) -> Optional[Review]:
+        """Returns the user's existing review for this product, or None."""
+        return (
+            db.query(Review)
+            .filter(
+                Review.user_id == user_id,
+                Review.product_id == product_id,
+            )
+            .first()
+        )
+
+    # ─────────────────────────────────────────
+    # UPDATE EXISTING REVIEW
+    # Only updates rating, title, comment
+    # user_id and product_id never change
+    # ─────────────────────────────────────────
+    @staticmethod
+    def update_review(
+        db: Session,
+        review_id: int,
+        rating: int,
+        title: Optional[str],
+        comment: Optional[str],
+    ) -> Optional[Review]:
+        review = (
+            db.query(Review)
+            .filter(Review.id == review_id)
+            .first()
+        )
+        if not review:
+            return None
+
+        review.rating  = rating
+        review.title   = title
+        review.comment = comment
+
+        db.commit()
+        db.refresh(review)
+        return review

@@ -5,7 +5,7 @@
     <div class="review-header">
       <h2>Customer Reviews</h2>
       <button class="write-btn" @click="openDialog">
-        Write Your Review
+        {{ triggerLabel }}
       </button>
     </div>
 
@@ -26,11 +26,6 @@
           <!-- USER -->
           <div class="user-info">
             <div class="avatar">
-              <!--
-                user_name comes from JOIN on users table.
-                NO reviewer_name column exists in DB.
-                Fallback: user_email first char, then 'A'
-              -->
               {{
                 (review.user_name || review.user_email || 'A')
                   .charAt(0)
@@ -77,16 +72,13 @@
       No reviews yet. Be the first to review!
     </p>
 
-    <!-- ================================================= -->
     <!-- REVIEW POPUP -->
-    <!-- ================================================= -->
     <q-dialog v-model="reviewDialog">
       <div class="review-popup">
 
-        <!-- CLOSE -->
         <button class="close-btn" @click="reviewDialog = false">✕</button>
 
-        <h3>Write Your Review</h3>
+        <h3>{{ dialogTitle }}</h3>
 
         <!-- RATING -->
         <div class="field">
@@ -136,7 +128,7 @@
         <!-- ACTIONS -->
         <div class="actions">
           <q-btn
-            label="Submit Review"
+            :label="submitLabel"
             :loading="submitting"
             :disable="submitting"
             @click="submitReview"
@@ -148,307 +140,209 @@
 
   </div>
 </template>
-```vue id="n8tk2a"
+
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from 'src/boot/axios'
+import { useAuthStore } from 'src/stores/auth'
 
-/* =======================================================
-   PROPS
-======================================================= */
+/* ── Props ───────────────────────────────────────────────── */
 const props = defineProps({
-  productId: {
-    type: Number,
-    required: true
-  },
-
-  reviews: {
-    type: Array,
-    default: () => []
-  }
+  productId : { type: Number, required: true },
+  reviews   : { type: Array,  default: () => [] }
 })
 
 const emit = defineEmits(['updateReviews'])
 
-/* =======================================================
-   STATE
-======================================================= */
-const localReviews = ref([])
+/* ── Store ───────────────────────────────────────────────── */
+const authStore = useAuthStore()
 
-const loading = ref(false)
-
-const reviewDialog = ref(false)
-
-const submitting = ref(false)
-
-const submitError = ref('')
-
-/* =======================================================
-   FORM STATE
-======================================================= */
-const reviewTitle = ref('')
-
+/* ── State ───────────────────────────────────────────────── */
+const localReviews  = ref([])
+const loading       = ref(false)
+const reviewDialog  = ref(false)
+const submitting    = ref(false)
+const submitError   = ref('')
+const reviewTitle   = ref('')
 const reviewComment = ref('')
+const reviewRating  = ref(0)
+const errors        = ref({ rating: '', comment: '' })
 
-const reviewRating = ref(0)
+// tracks the current user's existing review (null = no review yet)
+const existingReview = ref(null)
 
-const errors = ref({
-  rating: '',
-  comment: ''
-})
-
-/* =======================================================
-   COMPUTED
-======================================================= */
+/* ── Computed ────────────────────────────────────────────── */
 const reviewsList = computed(() => localReviews.value || [])
 
-/* =======================================================
-   FETCH REVIEWS
-======================================================= */
+// true when user already has a review for this product
+const isEditMode = computed(() => !!existingReview.value)
+
+// dynamic button/header labels
+const dialogTitle  = computed(() => isEditMode.value ? 'Edit Your Review' : 'Write Your Review')
+const submitLabel  = computed(() => isEditMode.value ? 'Update Review'    : 'Submit Review')
+const triggerLabel = computed(() => isEditMode.value ? 'Edit Your Review' : 'Write Your Review')
+
+/* ── Token resolution ────────────────────────────────────── */
+/*
+  Always read authStore.token (Pinia, set on login) first.
+  Fall back to localStorage 'token' key (access_token only).
+  NEVER use 'id_token' for API calls — Keycloak rejects it.
+*/
+const resolveToken = () => {
+  return authStore.token || localStorage.getItem('token') || null
+}
+
+/* ── Fetch reviews (public) ──────────────────────────────── */
 const fetchReviews = async () => {
-
   if (!props.productId) return
-
   loading.value = true
-
   try {
-
-    console.log(
-      'FETCHING REVIEWS FOR PRODUCT:',
-      props.productId
-    )
-
-    const response = await api.get(
-      `/api/v1/reviews/${props.productId}`
-    )
-
-    console.log(
-      'REVIEWS RESPONSE:',
-      response.data
-    )
-
-    localReviews.value = Array.isArray(response.data)
-      ? response.data
-      : []
-
+    const res = await api.get(`/api/v1/reviews/${props.productId}`)
+    localReviews.value = Array.isArray(res.data) ? res.data : []
+    emit('updateReviews', localReviews.value)
   } catch (err) {
-
-    console.error(
-      'Failed to fetch reviews:',
-      err?.response?.data || err
-    )
-
+    console.error('Fetch reviews error:', err?.response?.data || err)
     localReviews.value = []
-
   } finally {
-
     loading.value = false
   }
 }
 
-/* =======================================================
-   LIFECYCLE
-======================================================= */
-onMounted(() => {
+// fetch the current user's own review for this product
+// only called when user is logged in — silently does nothing if not authed
+const fetchMyReview = async () => {
+  if (!props.productId) return
+  if (!resolveToken()) return  // not logged in — skip silently
 
-  if (props.reviews?.length) {
-    localReviews.value = props.reviews
+  try {
+    const res = await api.get(`/api/v1/reviews/my/${props.productId}`)
+    // backend returns null (HTTP 200) if no review exists yet
+    existingReview.value = res.data || null
+  } catch (err) {
+    // 401 = not logged in, 404 = no review — both are fine, just clear
+    existingReview.value = null
   }
+}
 
+/* ── Lifecycle ───────────────────────────────────────────── */
+onMounted(() => {
+  if (props.reviews?.length) localReviews.value = props.reviews
   fetchReviews()
+  fetchMyReview()
 })
 
-watch(
-  () => props.productId,
-  async (newVal) => {
-
-    if (newVal) {
-      await fetchReviews()
-    }
+watch(() => props.productId, async (v) => {
+  if (v) {
+    await fetchReviews()
+    await fetchMyReview()  // re-check when product changes
   }
-)
+})
 
-/* =======================================================
-   OPEN DIALOG
-======================================================= */
+/* ── Dialog ──────────────────────────────────────────────── */
 const openDialog = () => {
-
   resetForm()
+
+  // if user already has a review, prefill the form
+  if (existingReview.value) {
+    reviewRating.value  = existingReview.value.rating  || 0
+    reviewTitle.value   = existingReview.value.title   || ''
+    reviewComment.value = existingReview.value.comment || ''
+  }
 
   reviewDialog.value = true
 }
 
-/* =======================================================
-   VALIDATION
-======================================================= */
+/* ── Validation ──────────────────────────────────────────── */
 const validateForm = () => {
-
-  errors.value = {
-    rating: '',
-    comment: ''
-  }
-
+  errors.value = { rating: '', comment: '' }
   let valid = true
-
   if (!reviewRating.value) {
-
-    errors.value.rating =
-      'Please select a rating'
-
+    errors.value.rating = 'Please select a rating'
     valid = false
   }
-
   if (!reviewComment.value?.trim()) {
-
-    errors.value.comment =
-      'Review is required'
-
+    errors.value.comment = 'Review is required'
     valid = false
   }
-
   return valid
 }
 
-/* =======================================================
-   SUBMIT REVIEW
-======================================================= */
+/* ── Submit / Update review ──────────────────────────────── */
 const submitReview = async () => {
-
   submitError.value = ''
+
+  // check auth store first — if there is no session at all, stop early.
+  // an expired-but-refreshable token is handled by the axios interceptor automatically.
+  if (!authStore.token && !localStorage.getItem('token')) {
+    submitError.value = 'Please log in to submit a review.'
+    return
+  }
 
   if (!validateForm()) return
 
   submitting.value = true
 
   try {
-
-    const token =
-      localStorage.getItem('token') ||
-      localStorage.getItem('id_token')
-
-    if (!token) {
-
-      submitError.value =
-        'Please log in first.'
-
-      return
-    }
-
     const payload = {
-
-      product_id: props.productId,
-
-      rating: reviewRating.value,
-
-      title: reviewTitle.value
-        ? reviewTitle.value.trim()
-        : null,
-
-      comment: reviewComment.value.trim()
+      product_id : props.productId,
+      rating     : reviewRating.value,
+      title      : reviewTitle.value?.trim() || null,
+      comment    : reviewComment.value.trim(),
     }
 
-    console.log(
-      'SUBMIT REVIEW PAYLOAD:',
-      payload
-    )
+    if (isEditMode.value) {
+      // PUT to update existing review
+      await api.put(`/api/v1/reviews/${existingReview.value.id}`, payload)
+    } else {
+      // POST for new review
+      await api.post('/api/v1/reviews', payload)
+    }
 
-    const response = await api.post(
-      '/api/v1/reviews',
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    )
-
-    console.log(
-      'REVIEW CREATED:',
-      response.data
-    )
-
-    // close popup
     reviewDialog.value = false
-
-    // reset form
     resetForm()
-
-    // fetch latest reviews dynamically
     await fetchReviews()
-
-    // emit updated reviews to parent
-    emit(
-      'updateReviews',
-      localReviews.value
-    )
+    await fetchMyReview()  // refresh existing review state after submit
 
   } catch (err) {
+    const status = err?.response?.status
+    const detail = err?.response?.data?.detail
 
-    console.error(
-      'Review submit error:',
-      err?.response?.data || err
-    )
-
-    if (err?.response?.status === 409) {
-
-      submitError.value =
-        'You have already reviewed this product.'
-
-    } else if (err?.response?.status === 401) {
-
-      submitError.value =
-        'Please log in first.'
-
+    if (status === 409) {
+      submitError.value = 'You have already reviewed this product.'
+    } else if (status === 403) {
+      submitError.value = 'You can only edit your own review.'
+    } else if (status === 401) {
+      // only reaches here if refresh also failed inside the interceptor
+      submitError.value = 'Session expired. Please log out and log in again.'
+    } else if (status === 422) {
+      submitError.value = 'Invalid data. Please check your review and try again.'
+    } else if (typeof detail === 'string') {
+      submitError.value = detail
     } else {
-
-      submitError.value =
-        err?.response?.data?.detail ||
-        'Something went wrong. Please try again.'
+      submitError.value = 'Something went wrong. Please try again.'
     }
-
   } finally {
-
     submitting.value = false
   }
 }
 
-/* =======================================================
-   RESET FORM
-======================================================= */
+/* ── Reset ───────────────────────────────────────────────── */
 const resetForm = () => {
-
-  reviewTitle.value = ''
-
+  reviewTitle.value   = ''
   reviewComment.value = ''
-
-  reviewRating.value = 0
-
-  submitError.value = ''
-
-  errors.value = {
-    rating: '',
-    comment: ''
-  }
+  reviewRating.value  = 0
+  submitError.value   = ''
+  errors.value        = { rating: '', comment: '' }
 }
 
-/* =======================================================
-   FORMAT DATE
-======================================================= */
+/* ── Date format ─────────────────────────────────────────── */
 const formatDate = (date) => {
-
   if (!date) return ''
-
-  return new Date(date).toLocaleDateString(
-    'en-IN',
-    {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    }
-  )
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  })
 }
 </script>
-
 
 <style scoped>
 .reviews-section {
@@ -456,13 +350,12 @@ const formatDate = (date) => {
   padding: 40px 25px;
   background: #ffffff;
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 10px 30px rgba(0,0,0,0.08),
     0 2px 10px rgba(0,0,0,0.05);
   transition: 0.3s ease;
 }
 
-/* HEADER */
 .review-header {
   position: relative;
   display: flex;
@@ -512,7 +405,6 @@ const formatDate = (date) => {
   box-shadow: 0 10px 25px rgba(0, 123, 127, 0.3);
 }
 
-/* GRID */
 .reviews-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 340px));
@@ -520,7 +412,6 @@ const formatDate = (date) => {
   gap: 20px;
 }
 
-/* CARD */
 .review-card {
   background: linear-gradient(135deg, #ffffff, #f8fafc);
   border-radius: 18px;
@@ -549,21 +440,18 @@ const formatDate = (date) => {
   box-shadow: 0 15px 35px rgba(0,0,0,0.1);
 }
 
-/* TOP */
 .review-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* USER */
 .user-info {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
-/* AVATAR */
 .avatar {
   width: 42px;
   height: 42px;
@@ -583,20 +471,15 @@ const formatDate = (date) => {
 .review-title { margin: 10px 0 4px; font-size: 15px; font-weight: 700; }
 .review-text { margin-top: 12px; font-size: 14px; color: #444; line-height: 1.6; }
 
-/* STARS display */
 .stars { font-size: 16px; }
 .stars span { color: #fbbf24; transition: 0.2s; }
-.stars span:hover { transform: scale(1.2); }
 
-/* ANIMATION */
 @keyframes fadeUp {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* EMPTY */
 .reviews-section p { text-align: center; color: gray; margin-top: 20px; }
 
-/* ================= POPUP ================= */
 .review-popup {
   position: relative;
   width: 92vw;
@@ -648,7 +531,6 @@ const formatDate = (date) => {
 .field label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px; }
 .req { color: #e53935; }
 
-/* STARS input */
 .stars-input { display: flex; gap: 6px; margin-top: 6px; }
 .stars-input span { font-size: 26px; cursor: pointer; color: #d1d5db; transition: 0.25s ease; }
 .stars-input span.active { color: #fbbf24; transform: scale(1.15); }
@@ -664,7 +546,13 @@ const formatDate = (date) => {
 .error { font-size: 12px; color: #d93025; margin-top: 4px; }
 .submit-error { text-align: center; margin-top: 0; }
 
-.actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
 .actions .q-btn:first-child {
   background: #000 !important;
   color: #fff !important;
@@ -678,10 +566,9 @@ const formatDate = (date) => {
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* RESPONSIVE */
 @media (max-width: 768px) {
   .reviews-section { padding: 24px 14px; }
-  .review-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .review-header { justify-content: space-between; gap: 8px; }
   .review-header h2 { font-size: 18px; flex: 1; text-align: left; }
   .write-btn { position: static; padding: 8px 10px; font-size: 11px; flex-shrink: 0; }
   .review-header h2::after { left: 40px; transform: none; }
@@ -694,7 +581,6 @@ const formatDate = (date) => {
 }
 
 @media (max-width: 480px) {
-  .review-header h2 { font-size: 18px; }
   .write-btn { font-size: 12px; padding: 9px 12px; }
   .review-popup { width: 95vw; padding: 20px 14px; }
   .review-popup h3 { font-size: 20px; }

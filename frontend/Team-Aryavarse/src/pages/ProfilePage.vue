@@ -81,23 +81,42 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
 
-const router = useRouter()
+const router    = useRouter()
 const authStore = useAuthStore()
 
-// ✅ FIXED FUNCTION
 function goToOrders() {
   router.push('/orders')
 }
 
+// ✅ Check token expiry on mount — don't just check if token exists
+function isTokenExpired(token) {
+  if (!token) return true
+  try {
+    // Decode payload without verification — just to read exp claim
+    const base64Payload = token.split('.')[1]
+    const padding = '='.repeat((4 - base64Payload.length % 4) % 4)
+    const payload = JSON.parse(atob(base64Payload + padding))
+    const now = Math.floor(Date.now() / 1000)
+    // Add 10s buffer to catch tokens expiring very soon
+    return payload.exp < now + 10
+  } catch {
+    return true
+  }
+}
+
 onMounted(() => {
-  if (!authStore.token) {
-    router.push('/login')
+  const token = authStore.token || localStorage.getItem('token')
+
+  if (!token || isTokenExpired(token)) {
+    // Token missing or expired — clear and redirect
+    authStore.logout()
+    router.replace({ path: '/login', query: { session: 'expired' } })
+    return
   }
 })
 
@@ -129,7 +148,6 @@ function handleLogout() {
   }
 }
 </script>
-
 <style scoped>
 *,
 *::before,

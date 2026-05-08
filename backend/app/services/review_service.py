@@ -196,3 +196,77 @@ class ReviewService:
         return ReviewRepository.get_product_rating_summary(
             db
         )
+    # ADD these two methods inside ReviewService class
+# Place them after create_review()
+
+    # ─────────────────────────────────────────
+    # GET CURRENT USER'S REVIEW FOR PRODUCT
+    # Used by frontend to prefill edit form
+    # ─────────────────────────────────────────
+    @staticmethod
+    def get_user_review(
+        db: Session,
+        keycloak_id: str,
+        product_id: int,
+    ):
+        db_user = (
+            db.query(User)
+            .filter(User.keycloak_id == keycloak_id)
+            .first()
+        )
+        if not db_user:
+            return None  # not an error — just not found
+
+        return ReviewRepository.get_user_review_for_product(
+            db=db,
+            user_id=db_user.id,
+            product_id=product_id,
+        )
+
+    # ─────────────────────────────────────────
+    # UPDATE EXISTING REVIEW
+    # Validates ownership before updating
+    # ─────────────────────────────────────────
+    @staticmethod
+    def update_review(
+        db: Session,
+        keycloak_id: str,
+        review_id: int,
+        rating: int,
+        title: Optional[str],
+        comment: Optional[str],
+    ):
+        # Resolve DB user
+        db_user = (
+            db.query(User)
+            .filter(User.keycloak_id == keycloak_id)
+            .first()
+        )
+        if not db_user:
+            raise HTTPException(
+                status_code=401,
+                detail="User not found. Please log in again."
+            )
+
+        # Fetch the review and verify ownership
+        existing = ReviewRepository.get_review_by_id(db, review_id)
+        if not existing:
+            raise HTTPException(
+                status_code=404,
+                detail="Review not found."
+            )
+
+        if existing.user_id != db_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only edit your own reviews."
+            )
+
+        updated = ReviewRepository.update_review(
+            db=db,
+            review_id=review_id,
+            rating=rating,
+            title=title,
+            comment=comment,
+        )
+        return updated
