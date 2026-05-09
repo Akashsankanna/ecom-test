@@ -87,7 +87,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
@@ -101,6 +100,7 @@ const selectedSort = ref('')
 const hoveredProduct = ref(null)
 const flyingHeartId = ref(null)
 const loading = ref(false)
+
 const wishlistIds = ref([])
 
 const selectedCategories = ref([])
@@ -109,8 +109,18 @@ const selectedColors = ref([])
 const selectedSleeves = ref([])
 
 const filterCategories = ['Scrubs', 'Aprons']
-const fabrics = ['Classic', 'Ecoflex Lite', 'Ecoflex']
-const sleeves = ['Full Sleeve Aprons', '3-4 Sleeve Aprons', 'Half Sleeve Aprons']
+
+const fabrics = [
+  'Classic',
+  'Ecoflex Lite',
+  'Ecoflex'
+]
+
+const sleeves = [
+  'Full Sleeve Aprons',
+  '3-4 Sleeve Aprons',
+  'Half Sleeve Aprons'
+]
 
 const allMenProducts = ref([])
 
@@ -120,7 +130,10 @@ const colors = computed(() => {
   allMenProducts.value.forEach((product) => {
     ;(product.colors || []).forEach((color) => {
       if (color.color_id) {
-        map.set(color.color_id, color.color_name || color.color)
+        map.set(
+          color.color_id,
+          color.color_name || color.color
+        )
       }
     })
   })
@@ -130,33 +143,69 @@ const colors = computed(() => {
 
 const getUserId = () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    return localStorage.getItem('user_id') || user?.id || null
+    const user = JSON.parse(
+      localStorage.getItem('user') || '{}'
+    )
+
+    return (
+      localStorage.getItem('user_id') ||
+      user?.id ||
+      null
+    )
   } catch {
     return localStorage.getItem('user_id') || null
   }
 }
 
 const normalizeProduct = (p) => {
-  const productId = Number(p.product_id || p.db_product_id || p.id)
+  const productId = Number(
+    p.product_id ||
+    p.db_product_id ||
+    p.id
+  )
 
   const variants = Array.isArray(p.variants)
     ? p.variants.map((v) => ({
         id: Number(v.id || v.variant_id),
-        variant_id: Number(v.variant_id || v.id),
-        product_id: Number(v.product_id || productId),
+
+        variant_id: Number(
+          v.variant_id || v.id
+        ),
+
+        product_id: Number(
+          v.product_id || productId
+        ),
 
         size: v.size || '',
-        color_id: v.color_id ? Number(v.color_id) : null,
+
+        color_id: v.color_id
+          ? Number(v.color_id)
+          : null,
+
         color: v.color || v.color_name || '',
-        color_name: v.color_name || v.color || '',
+
+        color_name:
+          v.color_name || v.color || '',
+
         hex_code: v.hex_code || '',
 
         price: Number(v.price || 0),
+
         stock: Number(v.stock || 0),
 
-        image: v.image || v.image_url || p.image || p.image_url || '/favicon.ico',
-        image_url: v.image_url || v.image || p.image_url || p.image || '/favicon.ico'
+        image:
+          v.image ||
+          v.image_url ||
+          p.image ||
+          p.image_url ||
+          '/favicon.ico',
+
+        image_url:
+          v.image_url ||
+          v.image ||
+          p.image_url ||
+          p.image ||
+          '/favicon.ico'
       }))
     : []
 
@@ -173,9 +222,15 @@ const normalizeProduct = (p) => {
 
   const productColors = Array.isArray(p.colors)
     ? p.colors.map((c) => ({
-        color_id: c.color_id ? Number(c.color_id) : null,
+        color_id: c.color_id
+          ? Number(c.color_id)
+          : null,
+
         color: c.color || c.color_name || '',
-        color_name: c.color_name || c.color || '',
+
+        color_name:
+          c.color_name || c.color || '',
+
         hex_code: c.hex_code || ''
       }))
     : [
@@ -196,55 +251,128 @@ const normalizeProduct = (p) => {
 
   const productSizes = Array.isArray(p.sizes)
     ? p.sizes
-    : [...new Set(variants.map((v) => v.size).filter(Boolean))]
+    : [
+        ...new Set(
+          variants
+            .map((v) => v.size)
+            .filter(Boolean)
+        )
+      ]
 
   return {
     id: productId,
+
     product_id: productId,
+
     db_product_id: productId,
 
-    variant_id: defaultVariant?.variant_id || Number(p.variant_id || p.default_variant_id || 0),
-    default_variant_id: defaultVariant?.variant_id || Number(p.default_variant_id || p.variant_id || 0),
+    variant_id:
+      defaultVariant?.variant_id ||
+      Number(
+        p.variant_id ||
+        p.default_variant_id ||
+        0
+      ),
 
-    color_id: defaultVariant?.color_id || p.color_id || null,
-    color: defaultVariant?.color || p.color || p.color_name || '',
-    color_name: defaultVariant?.color_name || p.color_name || p.color || '',
-    hex_code: defaultVariant?.hex_code || p.hex_code || '',
+    default_variant_id:
+      defaultVariant?.variant_id ||
+      Number(
+        p.default_variant_id ||
+        p.variant_id ||
+        0
+      ),
 
-    size: defaultVariant?.size || p.size || '',
+    color_id:
+      defaultVariant?.color_id ||
+      p.color_id ||
+      null,
+
+    color:
+      defaultVariant?.color ||
+      p.color ||
+      p.color_name ||
+      '',
+
+    color_name:
+      defaultVariant?.color_name ||
+      p.color_name ||
+      p.color ||
+      '',
+
+    hex_code:
+      defaultVariant?.hex_code ||
+      p.hex_code ||
+      '',
+
+    size:
+      defaultVariant?.size ||
+      p.size ||
+      '',
+
     sizes: productSizes,
+
     colors: productColors,
+
     variants,
 
     title: p.name || p.title || 'Product',
+
     name: p.name || p.title || 'Product',
+
     description: p.description || '',
-                                                                    
-    price: Number(defaultVariant?.price || p.price || 0),
-                                                             
+
+    price: Number(
+      defaultVariant?.price ||
+      p.price ||
+      0
+    ),
+
     image,
+
     image_url: image,
+
     images: [
       image,
+
       p.images?.[1]?.image_url ||
-        p.images?.[1]?.image ||
-        p.second_image ||
-        p.hover_image ||
-        image
+      p.images?.[1]?.image ||
+      p.second_image ||
+      p.hover_image ||
+      image
     ],
 
-    category: p.category_name || p.category || 'Scrubs',
-    category_name: p.category_name || p.category || 'Scrubs',
+    category:
+      p.category_name ||
+      p.category ||
+      'Scrubs',
 
-    gender: String(p.gender || 'men').toLowerCase(),
+    category_name:
+      p.category_name ||
+      p.category ||
+      'Scrubs',
+
+    gender: String(
+      p.gender || 'men'
+    ).toLowerCase(),
+
     fabric: p.fabric || 'Classic',
+
     sleeve: p.sleeve || '',
 
-    stock: Number(defaultVariant?.stock || p.stock || 0),
+    stock: Number(
+      defaultVariant?.stock ||
+      p.stock ||
+      0
+    ),
 
     type: 'men',
+
     rating: p.rating || 4.8,
-    isBestSeller: Boolean(p.isBestSeller || p.is_bestseller)
+
+    isBestSeller: Boolean(
+      p.isBestSeller ||
+      p.is_bestseller
+    )
   }
 }
 
@@ -253,22 +381,42 @@ const loadMenProducts = async () => {
     loading.value = true
 
     const res = await api.get('/products/', {
-      params: { gender: 'men' }
+      params: {
+        gender: 'men'
+      }
     })
 
     const rawProducts = Array.isArray(res.data)
       ? res.data
-      : res.data?.products || res.data?.data || res.data?.items || []
+      : res.data?.products ||
+        res.data?.data ||
+        res.data?.items ||
+        []
 
-    console.log('RAW MEN PRODUCTS:', rawProducts)
+    console.log(
+      'RAW MEN PRODUCTS:',
+      rawProducts
+    )
 
     allMenProducts.value = rawProducts
       .map(normalizeProduct)
-      .filter((p) => p.product_id && p.variant_id && p.gender === 'men')
+      .filter(
+        (p) =>
+          p.product_id &&
+          p.variant_id &&
+          p.gender === 'men'
+      )
 
-    console.log('MEN PRODUCTS FINAL:', allMenProducts.value)
+    console.log(
+      'MEN PRODUCTS FINAL:',
+      allMenProducts.value
+    )
   } catch (err) {
-    console.error('MEN PRODUCTS LOAD ERROR:', err.response?.data || err)
+    console.error(
+      'MEN PRODUCTS LOAD ERROR:',
+      err.response?.data || err
+    )
+
     allMenProducts.value = []
   } finally {
     loading.value = false
@@ -276,7 +424,9 @@ const loadMenProducts = async () => {
 }
 
 const isProductInWishlist = (product) => {
-  return wishlistIds.value.includes(Number(product.variant_id))
+  return wishlistIds.value.includes(
+    Number(product.variant_id)
+  )
 }
 
 const loadWishlistIds = async () => {
@@ -289,16 +439,28 @@ const loadWishlistIds = async () => {
     }
 
     const res = await api.get('/wishlist/', {
-      params: { user_id: userId }
+      params: {
+        user_id: userId
+      }
     })
 
     wishlistIds.value = Array.isArray(res.data)
-      ? res.data.map((item) => Number(item.variant_id)).filter(Boolean)
+      ? res.data
+          .map((item) =>
+            Number(item.variant_id)
+          )
+          .filter(Boolean)
       : []
 
-    console.log('WISHLIST IDS:', wishlistIds.value)
+    console.log(
+      'WISHLIST IDS:',
+      wishlistIds.value
+    )
   } catch (err) {
-    console.error('LOAD WISHLIST ERROR:', err.response?.data || err)
+    console.error(
+      'LOAD WISHLIST ERROR:',
+      err.response?.data || err
+    )
   }
 }
 
@@ -311,50 +473,95 @@ const handleWishlist = async (product) => {
       return
     }
 
-    const variantId = Number(product.variant_id)
+    const variantId = Number(
+      product.variant_id
+    )
 
-    if (!variantId || Number.isNaN(variantId)) {
-      console.error('VARIANT ID MISSING:', product)
+    if (
+      !variantId ||
+      Number.isNaN(variantId)
+    ) {
+      console.error(
+        'VARIANT ID MISSING:',
+        product
+      )
       return
     }
 
     if (isProductInWishlist(product)) {
       await api.delete('/wishlist/remove', {
-        params: { user_id: userId },
-        data: { variant_id: variantId }
+        params: {
+          user_id: userId
+        },
+
+        data: {
+          variant_id: variantId
+        }
       })
 
-      wishlistIds.value = wishlistIds.value.filter((id) => id !== variantId)
+      wishlistIds.value =
+        wishlistIds.value.filter(
+          (id) => id !== variantId
+        )
     } else {
       await api.post(
         '/wishlist/add',
-        { variant_id: variantId },
-        { params: { user_id: userId } }
+        {
+          variant_id: variantId
+        },
+        {
+          params: {
+            user_id: userId
+          }
+        }
       )
 
-      if (!wishlistIds.value.includes(variantId)) {
-        wishlistIds.value.push(variantId)
+      if (
+        !wishlistIds.value.includes(
+          variantId
+        )
+      ) {
+        wishlistIds.value.push(
+          variantId
+        )
       }
     }
 
     flyingHeartId.value = product.id
+
     setTimeout(() => {
       flyingHeartId.value = null
     }, 900)
   } catch (err) {
-    console.error('WISHLIST ERROR:', err.response?.data || err)
+    console.error(
+      'WISHLIST ERROR:',
+      err.response?.data || err
+    )
   }
 }
 
 const goToMenProduct = (product) => {
-  const productId = product.product_id || product.db_product_id || product.id
+  const productId =
+    product.product_id ||
+    product.db_product_id ||
+    product.id
+
   router.push(`/men-product/${productId}`)
 }
 
 const getFabricDescription = (fabric) => {
-  if (fabric === 'Classic') return 'Classic fit • Soft feel • Everyday comfort'
-  if (fabric === 'Ecoflex') return 'Ecoflex stretch • Breathable • Premium movement'
-  if (fabric === 'Ecoflex Lite') return 'Lightweight • Flexible • Comfortable'
+  if (fabric === 'Classic') {
+    return 'Classic fit • Soft feel • Everyday comfort'
+  }
+
+  if (fabric === 'Ecoflex') {
+    return 'Ecoflex stretch • Breathable • Premium movement'
+  }
+
+  if (fabric === 'Ecoflex Lite') {
+    return 'Lightweight • Flexible • Comfortable'
+  }
+
   return 'Premium scrub fabric'
 }
 
@@ -364,32 +571,54 @@ const filteredProducts = computed(() => {
   products = products.filter((product) => {
     const matchCategory =
       selectedCategories.value.length === 0 ||
-      selectedCategories.value.includes(product.category)
+      selectedCategories.value.includes(
+        product.category
+      )
 
     const matchFabric =
       selectedFabrics.value.length === 0 ||
-      selectedFabrics.value.includes(product.fabric)
+      selectedFabrics.value.includes(
+        product.fabric
+      )
 
     const matchSleeve =
       selectedSleeves.value.length === 0 ||
-      selectedSleeves.value.includes(product.sleeve)
+      selectedSleeves.value.includes(
+        product.sleeve
+      )
 
     const matchColor =
       selectedColors.value.length === 0 ||
-      product.variants.some((v) =>
-        selectedColors.value.includes(v.color) ||
-        selectedColors.value.includes(v.color_name)
+      product.variants.some(
+        (v) =>
+          selectedColors.value.includes(
+            v.color
+          ) ||
+          selectedColors.value.includes(
+            v.color_name
+          )
       )
 
-    return matchCategory && matchFabric && matchSleeve && matchColor
+    return (
+      matchCategory &&
+      matchFabric &&
+      matchSleeve &&
+      matchColor
+    )
   })
 
   if (selectedSort.value === 'low') {
     products.sort((a, b) => a.price - b.price)
-  } else if (selectedSort.value === 'high') {
+  } else if (
+    selectedSort.value === 'high'
+  ) {
     products.sort((a, b) => b.price - a.price)
-  } else if (selectedSort.value === 'bestseller') {
-    products = products.filter((product) => product.isBestSeller)
+  } else if (
+    selectedSort.value === 'bestseller'
+  ) {
+    products = products.filter(
+      (product) => product.isBestSeller
+    )
   }
 
   return products
