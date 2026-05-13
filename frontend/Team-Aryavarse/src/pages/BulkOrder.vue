@@ -13,39 +13,50 @@
         }"
       >
         <!-- Original Slides -->
-        <div
-          class="bulk-slider__slide"
-          v-for="(slide, i) in bannerSlides"
-          :key="i"
-        >
-          <img :src="slide.image" class="bulk-banner__img" :alt="slide.eyebrow" />
-          <div class="bulk-banner__overlay">
-            <div class="bulk-banner__content">
-              <p class="bulk-banner__eyebrow">{{ slide.eyebrow }}</p>
-              <h1 class="bulk-banner__title">{{ slide.title }}</h1>
-              <p class="bulk-banner__sub">{{ slide.sub }}</p>
-              <div class="bulk-banner__badges">
-                <span class="badge" v-for="badge in slide.badges" :key="badge">{{ badge }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Clone of first slide for infinite loop -->
-        <div class="bulk-slider__slide">
-          <img :src="bannerSlides[0].image" class="bulk-banner__img" :alt="bannerSlides[0].eyebrow" />
-          <div class="bulk-banner__overlay">
-            <div class="bulk-banner__content">
-              <p class="bulk-banner__eyebrow">{{ bannerSlides[0].eyebrow }}</p>
-              <h1 class="bulk-banner__title">{{ bannerSlides[0].title }}</h1>
-              <p class="bulk-banner__sub">{{ bannerSlides[0].sub }}</p>
-              <div class="bulk-banner__badges">
-                <span class="badge" v-for="badge in bannerSlides[0].badges" :key="badge">{{ badge }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+<div
+  class="bulk-slider__slide"
+  v-for="(slide, i) in bannerSlides"
+  :key="i"
+>
+  <!-- ADD this bulk-inner wrapper like hero-inner -->
+  <div class="bulk-inner">
+    <div class="bulk-banner__content">
+      <p class="bulk-banner__eyebrow">{{ slide.eyebrow }}</p>
+      <h1 class="bulk-banner__title">{{ slide.title }}</h1>
+      <p class="bulk-banner__sub">{{ slide.sub }}</p>
+      <div class="bulk-banner__badges">
+        <span class="badge" v-for="badge in slide.badges" :key="badge">{{ badge }}</span>
       </div>
+    </div>
+    <!-- Image now as flex sibling, not background -->
+    <div class="bulk-image-wrapper">
+      <img :src="slide.image" class="bulk-banner__img" :alt="slide.eyebrow" />
+    </div>
+  </div>
+</div>
+
+<!-- Clone slide — same structure -->
+<div class="bulk-slider__slide">
+  <div class="bulk-inner">
+    <div class="bulk-banner__content">
+      <p class="bulk-banner__eyebrow">{{ bannerSlides[0].eyebrow }}</p>
+      <h1 class="bulk-banner__title">{{ bannerSlides[0].title }}</h1>
+      <p class="bulk-banner__sub">{{ bannerSlides[0].sub }}</p>
+      <div class="bulk-banner__badges">
+        <span class="badge" v-for="badge in bannerSlides[0].badges" :key="badge">{{ badge }}</span>
+      </div>
+    </div>
+    <div class="bulk-image-wrapper">
+      <img :src="bannerSlides[0].image" class="bulk-banner__img" :alt="bannerSlides[0].eyebrow" />
+    </div>
+  </div>
+</div>
+            
+          </div>
+    
+
+      <!-- CHANGE: Fade overlay — same as home page, flashes white on each slide change -->
+      <div class="bulk-fade-overlay" :class="{ 'is-fading': isBannerFading }"></div>
 
       <!-- Dot Indicators -->
       <div class="bulk-slider__dots">
@@ -60,11 +71,11 @@
 
     </div>
 
-    <!-- ─── MAIN CONTENT ─────────────────────────────────────── -->
+    <!---- MAIN CONTENT----->
     <div class="bulk-container">
       <div class="bulk-grid">
 
-        <!-- ── LEFT: Why Us ─────────────────────────────────── -->
+        <!---- LEFT: Why Us ----->
         <div class="why-card">
           <h3 class="why-card__title">Why Choose Us?</h3>
 
@@ -116,127 +127,181 @@
                 <p class="section-title">Organisation Details</p>
               </div>
 
-              <!-- Organisation Name -->
               <div class="form-row">
                 <div class="form-field">
                   <p class="field-label">Organisation / Hospital Name <span class="required">*</span></p>
                   <q-input
-                    v-model="form.orgName"
-                    outlined dense
-                    placeholder="Enter organisation name"
-                    :rules="[v => !!v || 'Required']"
-                  />
+  v-model="form.orgName"
+  outlined
+  dense
+  maxlength="50"
+  placeholder="Enter organisation name"
+
+  @update:model-value="val => form.orgName = val.replace(/[^A-Za-z\s]/g, '')"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => /^[A-Za-z\s]+$/.test(v) || 'Only letters allowed (no numbers)',
+    v => v.length <= 50 || 'Max 50 characters allowed'
+  ]"
+/>
                 </div>
               </div>
 
-              <!-- Contact + Email -->
               <div class="form-row form-row--2">
                 <div class="form-field">
                   <p class="field-label">Contact Person Name <span class="required">*</span></p>
-                  <q-input
-                    v-model="form.contactName"
-                    outlined dense
-                    placeholder="Enter name"
-                    :rules="[v => !!v || 'Required']"
-                  />
+<q-input
+  v-model="form.contactName"
+  outlined
+  dense
+  maxlength="30"
+  placeholder="Enter name"
+
+  @update:model-value="val => form.contactName = val.replace(/[^A-Za-z\s]/g, '')"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => v.length <= 30 || 'Max 30 characters allowed'
+  ]"
+/>
                 </div>
                 <div class="form-field">
                   <p class="field-label">Email Address <span class="required">*</span></p>
-                  <q-input
-                    v-model="form.email"
-                    outlined dense
-                    type="email"
-                    placeholder="Enter email"
-                    :rules="[
-                      v => !!v || 'Required',
-                      v => /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(v) || 'Only valid @gmail.com email allowed'
-                    ]"
-                  />
+                 <q-input
+  v-model="form.email"
+  outlined
+  dense
+  type="email"
+  maxlength="40"
+  placeholder="Enter email"
+
+  @update:model-value="val => {
+    // remove unwanted special characters
+    form.email = val.replace(/[^a-zA-Z0-9.@]/g, '')
+  }"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => /^[a-zA-Z0-9.]+@gmail\.com$/.test(v) || 'Only valid @gmail.com allowed'
+  ]"
+/>
                 </div>
               </div>
 
-              <!-- Phone + Country -->
               <div class="form-row form-row--2">
                 <div class="form-field">
                   <p class="field-label">Phone Number <span class="required">*</span></p>
                   <q-input
-                    v-model="form.phone"
-                    outlined dense
-                    type="tel"
-                    maxlength="10"
-                    placeholder="Enter 10 digit phone number"
-                    :rules="[
-                      v => !!v || 'Required',
-                      v => /^[0-9]{10}$/.test(v) || 'Enter valid 10 digit number'
-                    ]"
-                  />
+  v-model="form.phone"
+  outlined
+  dense
+  maxlength="10"
+  inputmode="numeric"
+  placeholder="Enter 10 digit phone number"
+
+  @update:model-value="val => form.phone = val.replace(/[^0-9]/g, '')"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => v.length === 10 || 'Must be exactly 10 digits'
+  ]"
+/>
                 </div>
                 <div class="form-field">
                   <p class="field-label">Country <span class="required">*</span></p>
-                  <q-select
-                    v-model="form.country"
-                    :options="countryOptions"
-                    outlined dense
-                    use-input
-                    fill-input
-                    hide-selected
-                    placeholder="Select country"
-                    :rules="[v => !!v || 'Required']"
-                  />
+                  <q-select v-model="form.country" :options="countryOptions" outlined dense placeholder="Select country" :rules="[v => !!v || 'Required']" />
                 </div>
               </div>
 
-              <!-- State + City -->
               <div class="form-row form-row--2">
                 <div class="form-field">
                   <p class="field-label">State <span class="required">*</span></p>
                   <q-select
-                    v-model="form.state"
-                    :options="stateOptions"
-                    outlined dense
-                    use-input
-                    input-debounce="0"
-                    fill-input
-                    hide-selected
-                    placeholder="Select state"
-                    :rules="[v => !!v || 'Required']"
-                  />
+  v-model="form.state"
+  :options="stateOptions"
+  outlined
+  dense
+  :display-value="form.state || 'Select state'"
+  :rules="[v => !!v || 'Required']"
+/>
                 </div>
                 <div class="form-field">
                   <p class="field-label">City <span class="required">*</span></p>
                   <q-input
-                    v-model="form.city"
-                    outlined dense
-                    placeholder="Enter city"
-                    :rules="[v => !!v || 'Required']"
-                  />
+  v-model="form.city"
+  outlined
+  dense
+  maxlength="20"
+  placeholder="Enter city"
+
+  @update:model-value="val => form.city = val.replace(/[^A-Za-z\s]/g, '')"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => /^[A-Za-z\s]+$/.test(v) || 'Only letters allowed',
+    v => v.length <= 30 || 'Max 30 characters allowed'
+  ]"
+/>
                 </div>
               </div>
 
-              <!-- Address -->
               <div class="form-row">
                 <div class="form-field">
                   <p class="field-label">Address <span class="required">*</span></p>
                   <q-input
-                    v-model="form.address"
-                    type="textarea"
-                    outlined dense
-                    rows="2"
-                    placeholder="Enter full address"
-                    :rules="[v => !!v || 'Required']"
-                  />
+  v-model="form.address"
+  type="textarea"
+  outlined
+  dense
+  rows="2"
+  autogrow
+  maxlength="50"
+  counter
+  placeholder="Enter full address"
+  :rules="[
+    v => !!v || 'Required',
+    v => v.length <= 50 || 'Max 50 characters allowed'
+  ]"
+/>
                 </div>
               </div>
 
-              <!-- GST + Postal Code -->
               <div class="form-row form-row--2">
                 <div class="form-field">
                   <p class="field-label">GST Number</p>
-                  <q-input v-model="form.gst" outlined dense placeholder="Enter GST number" />
-                </div>
+                  <q-input
+  v-model="form.gst"
+  outlined
+  dense
+  maxlength="15"
+  placeholder="Enter GST number"
+
+  @update:model-value="val => form.gst = val.toUpperCase().replace(/[^0-9A-Z]/g, '')"
+
+  :rules="[
+    v => !v || v.length === 15 || 'GST must be 15 characters',
+    v => !v || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v) || 'Invalid GST format'
+  ]"
+/>
+</div>
                 <div class="form-field">
                   <p class="field-label">Postal Code</p>
-                  <q-input v-model="form.postalCode" outlined dense placeholder="Enter postal code" />
+                  <q-input
+  v-model="form.postalCode"
+  outlined
+  dense
+  maxlength="6"
+  inputmode="numeric"
+  placeholder="Enter 6 digit PIN code"
+
+  @update:model-value="val => form.postalCode = val.replace(/[^0-9]/g, '')"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => /^[1-9][0-9]{5}$/.test(v) || 'Enter valid 6-digit PIN code'
+  ]"
+/>
                 </div>
               </div>
             </div>
@@ -248,245 +313,96 @@
                 <p class="section-title">Order Details</p>
               </div>
 
-              <!-- ── Product Rows ── -->
-              <div
-                v-for="(product, index) in form.products"
-                :key="index"
-                class="product-row-card"
-              >
-                <!-- Order label + remove btn -->
+              <div v-for="(product, index) in form.products" :key="index" class="product-row-card">
                 <div class="product-row-header">
                   <span class="product-row-label">Order {{ index + 1 }}</span>
-                  <button
-                    v-if="form.products.length > 1"
-                    type="button"
-                    class="remove-product-btn"
-                    @click="removeProduct(index)"
-                  >
+                  <button v-if="form.products.length > 1" type="button" class="remove-product-btn" @click="removeProduct(index)">
                     <q-icon name="close" size="16px" /> Remove
                   </button>
                 </div>
 
-                <!-- 4 fields in one row: Category | Quantity | Size | Gender -->
                 <div class="product-fields-row">
                   <div class="product-field">
                     <p class="field-label">Product Category <span class="required">*</span></p>
-                    <q-select
-                      v-model="product.category"
-                      :options="categories"
-                      outlined dense
-                      placeholder="Select"
-                      :rules="[v => !!v || 'Required']"
-                    />
+                    <q-select v-model="product.category" :options="categories" outlined dense placeholder="Select" :rules="[v => !!v || 'Required']" />
                   </div>
-
                   <div class="product-field product-field--qty">
                     <p class="field-label">Quantity <span class="required">*</span></p>
-                    <q-input
-                      v-model.number="product.quantity"
-                      type="number"
-                      outlined dense
-                      placeholder="Qty"
-                      :rules="[v => !!v || 'Required']"
-                    />
-                  </div>
+                   <q-input
+  v-model.number="product.quantity"
+  type="number"
+  outlined
+  dense
+  min="1"
+  placeholder="Qty"
 
+  @update:model-value="val => {
+    if (val < 1) product.quantity = null
+  }"
+
+  :rules="[
+    v => !!v || 'Required',
+    v => v > 0 || 'Must be greater than 0'
+  ]"
+/>
+                  </div>
                   <div class="product-field">
                     <p class="field-label">Size <span class="required">*</span></p>
-                    <q-select
-                      v-model="product.size"
-                      :options="['XS','S','M','L','XL','XXL','3XL']"
-                      outlined dense
-                      placeholder="Size"
-                      :rules="[v => !!v || 'Required']"
-                    />
+                    <q-select v-model="product.size" :options="['XS','S','M','L','XL','XXL','3XL']" outlined dense placeholder="Size" :rules="[v => !!v || 'Required']" />
                   </div>
-
                   <div class="product-field">
                     <p class="field-label">Gender <span class="required">*</span></p>
-                    <q-select
-                      v-model="product.gender"
-                      :options="genderOptions"
-                      outlined dense
-                      placeholder="Gender"
-                      :rules="[v => !!v || 'Required']"
-                    />
+                    <q-select v-model="product.gender" :options="genderOptions" outlined dense placeholder="Gender" :rules="[v => !!v || 'Required']" />
                   </div>
-
                   <div class="product-field product-field--color">
                     <p class="field-label">Color</p>
-                    <q-select
-                      v-model="product.colors"
-                      :options="colorOptions"
-                      outlined dense
-                      multiple
-                      use-chips
-                      placeholder="Select colors"
-                    />
+                    <q-select v-model="product.colors" :options="colorOptions" outlined dense multiple use-chips placeholder="Select colors" />
                   </div>
                 </div>
               </div>
 
-              <!-- + Add Product Button -->
               <div class="add-product-wrap">
-                <q-btn
-                  flat
-                  icon="add_circle"
-                  label="Add Product"
-                  color="teal"
-                  no-caps
-                  class="add-product-btn"
-                  @click="addProduct"
-                />
+                <q-btn flat icon="add_circle" label="Add Product" color="teal" no-caps class="add-product-btn" @click="addProduct" />
               </div>
 
-              <!-- Expected Delivery Date -->
               <div class="form-row form-row--2" style="margin-top: 18px;">
                 <div class="form-field">
                   <p class="field-label">Expected Delivery Date <span class="required">*</span></p>
-                  <q-input
-                    v-model="form.deliveryDate"
-                    outlined dense
-                    type="date"
-                    :rules="[v => !!v || 'Required']"
-                  />
+                  <q-input v-model="form.deliveryDate" outlined dense type="date" :rules="[v => !!v || 'Required']" />
                 </div>
                 <div class="form-field">
                   <p class="field-label">Fabric Preference</p>
-                  <q-select
-                    v-model="form.fabric"
-                    :options="fabrics"
-                    outlined dense
-                    :display-value="form.fabric ? form.fabric : 'Select fabric'"
-                  />
+                  <q-select v-model="form.fabric" :options="fabrics" outlined dense :display-value="form.fabric ? form.fabric : 'Select fabric'" />
                 </div>
               </div>
 
-              <!-- Additional Requirements -->
               <div class="form-row">
                 <div class="form-field">
                   <p class="field-label">Additional Requirements</p>
-                  <q-input
-                    v-model="form.notes"
-                    outlined dense
-                    type="textarea"
-                    rows="3"
-                    placeholder="Any specific requirements, packaging notes, etc."
-                  />
+                  <q-input v-model="form.notes" outlined dense type="textarea" rows="3" placeholder="Any specific requirements, packaging notes, etc." />
                 </div>
               </div>
             </div>
 
-            <!-- ── SECTION 3: Branding & Customization ─────── -->
+             <!-- ── SECTION 3: Branding & Customization ─────── -->
             <div class="form-section">
               <div class="section-header">
                 <span class="section-num">03</span>
                 <p class="section-title">Branding & Customization</p>
               </div>
 
-              <q-toggle
-                v-model="form.hasCustomization"
-                label="Add Custom Branding to this Order"
-                color="teal"
-                class="custom-toggle"
-              />
+              <q-toggle v-model="form.hasCustomization" label="Add Custom Branding to this Order" color="teal" class="custom-toggle" />
 
               <transition name="slide-down">
-                <div v-if="form.hasCustomization" class="custom-block">
+  <div v-if="form.hasCustomization">
 
-                  <!-- Customization Types -->
-                  <p class="field-label">Customization Type</p>
-                  <div class="custom-type-grid">
-                    <button
-                      v-for="ct in customizationTypes"
-                      :key="ct.id"
-                      type="button"
-                      class="type-chip"
-                      :class="{ 'type-chip--active': form.customTypes.includes(ct.id) }"
-                      @click="toggleCustomType(ct.id)"
-                    >
-                      <span>{{ ct.icon }}</span>
-                      <span>{{ ct.name }}</span>
-                      <span class="chip-price">+₹{{ ct.price }}/pc</span>
-                    </button>
-                  </div>
+    <ProductCustomization
+      @customization-updated="handleCustomizationUpdate"
+      @customization-applied="handleCustomizationApply"
+    />
 
-                  <!-- Position -->
-                  <div v-if="form.customTypes.length" class="mt-14">
-                    <p class="field-label">Placement Position</p>
-                    <div class="position-grid">
-                      <button
-                        v-for="pos in positions"
-                        :key="pos.id"
-                        type="button"
-                        class="pos-chip"
-                        :class="{ 'pos-chip--active': form.positions.includes(pos.id) }"
-                        @click="togglePosition(pos.id)"
-                      >
-                        {{ pos.name }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Text -->
-                  <div v-if="requiresText" class="mt-14">
-                    <p class="field-label">Text to Print / Embroider <span class="required">*</span></p>
-                    <q-input
-                      v-model="form.customText"
-                      outlined dense
-                      maxlength="50"
-                      placeholder="e.g. Apollo Hospital, Dr. Mehta"
-                      class="form-field"
-                      counter
-                    />
-                  </div>
-
-                  <!-- Logo Upload -->
-                  <div v-if="requiresLogo" class="mt-14">
-                    <p class="field-label">Upload Logo / Design File</p>
-                    <div class="upload-zone" @click="$refs.logoInput.click()">
-                      <div v-if="!form.logoFile">
-                        <q-icon name="cloud_upload" size="30px" color="teal" />
-                        <p class="upload-text">Click to upload (PNG, JPG, SVG)</p>
-                      </div>
-                      <div v-else class="upload-preview">
-                        <img :src="logoPreview" class="logo-thumb" />
-                        <span class="logo-filename">{{ form.logoFile.name }}</span>
-                        <button type="button" class="remove-logo" @click.stop="removeLogo">✕</button>
-                      </div>
-                      <input
-                        ref="logoInput"
-                        type="file"
-                        accept=".png,.jpg,.jpeg,.svg"
-                        style="display:none"
-                        @change="handleLogoUpload"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Customization Notes -->
-                  <div class="mt-14">
-                    <p class="field-label">Customization Notes</p>
-                    <q-input
-                      v-model="form.customNotes"
-                      outlined dense
-                      type="textarea"
-                      rows="2"
-                      placeholder="Font style, color preference, size of logo..."
-                      class="form-field"
-                    />
-                  </div>
-
-                  <q-banner class="custom-warning">
-                    <template #avatar>
-                      <q-icon name="warning" color="orange-8" />
-                    </template>
-                    Customized orders are <strong>non-cancellable</strong> once production begins.
-                    Approval takes 24–48 hours before production starts.
-                  </q-banner>
-
-                </div>
-              </transition>
+  </div>
+</transition>
             </div>
 
             <!-- ── SECTION 4: Quote Summary ──────────────────── -->
@@ -496,21 +412,13 @@
                 <span>Estimated Quote Summary</span>
               </div>
               <div class="quote-rows">
-                <div class="quote-row">
-                  <span>Total Quantity</span>
-                  <span>{{ totalQuantity }} pcs</span>
-                </div>
-                <div class="quote-row">
-                  <span>Estimated Price / Piece</span>
-                  <span>₹{{ estimatedPricePerPiece }}</span>
-                </div>
+                <div class="quote-row"><span>Total Quantity</span><span>{{ totalQuantity }} pcs</span></div>
+                <div class="quote-row"><span>Estimated Price / Piece</span><span>₹{{ estimatedPricePerPiece }}</span></div>
                 <div v-if="form.hasCustomization && customizationCost > 0" class="quote-row">
-                  <span>Customization / Piece</span>
-                  <span>+₹{{ customizationCost }}</span>
+                  <span>Customization / Piece</span><span>+₹{{ customizationCost }}</span>
                 </div>
                 <div class="quote-row quote-row--total">
-                  <span>Estimated Total</span>
-                  <span>₹{{ estimatedTotal.toLocaleString('en-IN') }}</span>
+                  <span>Estimated Total</span><span>₹{{ estimatedTotal.toLocaleString('en-IN') }}</span>
                 </div>
               </div>
               <p class="quote-note">
@@ -519,24 +427,12 @@
               </p>
             </div>
 
-            <!-- ── SUBMIT ──────────────────────────────────────── -->
+            <!-- ── SUBMIT----- -->
             <div class="form-submit">
-              <q-btn
-                type="submit"
-                label="Submit Bulk Request"
-                color="teal"
-                class="submit-btn"
-                :loading="submitting"
-                unelevated
-                no-caps
-              >
-                <template #loading>
-                  <q-spinner-dots size="20px" />
-                </template>
+              <q-btn type="submit" label="Submit Bulk Request" color="teal" class="submit-btn" :loading="submitting" unelevated no-caps>
+                <template #loading><q-spinner-dots size="20px" /></template>
               </q-btn>
-              <p class="submit-note">
-                Our team will reach out within 24 business hours
-              </p>
+              <p class="submit-note">Our team will reach out within 24 business hours</p>
             </div>
 
           </q-form>
@@ -550,22 +446,9 @@
       <div class="success-card">
         <div class="success-icon">✅</div>
         <h3>Request Submitted!</h3>
-        <p>
-          Your bulk order request has been received.<br />
-          Request ID: <strong>{{ requestNumber }}</strong>
-        </p>
-        <p class="success-sub">
-          Our team will contact you at <strong>{{ form.email }}</strong>
-          within 24 business hours with a quote.
-        </p>
-        <q-btn
-          label="Done"
-          color="teal"
-          unelevated
-          no-caps
-          v-close-popup
-          class="done-btn"
-        />
+        <p>Your bulk order request has been received.<br />Request ID: <strong>{{ requestNumber }}</strong></p>
+        <p class="success-sub">Our team will contact you at <strong>{{ form.email }}</strong> within 24 business hours with a quote.</p>
+        <q-btn label="Done" color="teal" unelevated no-caps v-close-popup class="done-btn" />
       </div>
     </q-dialog>
 
@@ -575,9 +458,14 @@
 <script>
 import { bannerImg } from 'src/data/imageHelper'
 import { fetchBulkOrderOptions, submitBulkOrderRequest } from 'src/service/bulkorderservice'
+import ProductCustomization from 'src/components/Productcustomization.vue'
 
 export default {
   name: 'BulkOrderPage',
+
+  components: {
+    ProductCustomization
+  },
 
   data() {
     return {

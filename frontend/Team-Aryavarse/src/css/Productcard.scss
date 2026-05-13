@@ -1,0 +1,381 @@
+/* =============================================
+   PRODUCTCARD.SCSS — men page exact match
+   ============================================= */
+
+/* ===== CARD ===== */
+.card {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+/* ===== IMAGE WRAPPER ===== */
+.img-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #f8f8f8;
+    cursor: pointer;
+    width: 100%; /* FIX */
+}
+
+/* ===== PRODUCT IMAGE ===== */
+.product-img {
+  width: 100%;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: top !important;
+  transition: all 0.45s ease;
+  display: block;
+
+}
+
+.img-wrapper:hover .product-img {
+  transform: scale(1.04);
+}
+
+/* ===== BESTSELLER BADGE ===== 
+  .badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    color: rgb(184, 81, 81);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    z-index: 3;
+  }*/
+
+/* ===== WISHLIST HEART ===== */
+.card-icons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.card-icons .q-icon {
+  color: #222;
+  font-size: 22px;
+  transition: 0.2s ease;
+}
+
+.card-icons:hover .q-icon {
+  transform: scale(1.1);
+}
+
+.active-heart {
+  color: #e11d48 !important;
+}
+
+/* ===== FLYING HEARTS ===== */
+.fly-heart {
+  position: absolute;
+  font-size: 14px;
+  color: #e11d48;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.7);
+  z-index: 5;
+}
+
+.fly-heart.show {
+  animation: floatHeart 0.9s ease forwards;
+}
+
+.h1 { left: -2px;  top: -2px; }
+.h2 { left: 10px;  top: -6px;  animation-delay: 0.08s; }
+.h3 { left: 18px;  top: 0px;   animation-delay: 0.15s; }
+.h4 { left: 8px;   top: 10px;  animation-delay: 0.2s;  }
+.h5 { left: 20px;  top: -10px; animation-delay: 0.25s; }
+
+@keyframes floatHeart {
+  0%   { opacity: 0; transform: translateY(0) scale(0.7); }
+  20%  { opacity: 1; transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-28px) scale(1.2); }
+}
+
+/* ===== QUICK VIEW BUTTON ===== */
+.hover-actions {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  animation: fadeUp 0.25s ease;
+  white-space: nowrap;
+}
+
+.quick-btn {
+  border: none;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s;
+  background: #fff;
+  color: #14325b;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+
+.quick-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ===== CARD CONTENT ===== */
+.card-content {
+  padding-top: 12px;
+  width: 100%;
+}
+
+.fabric-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.fabric-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1c1c;
+  border-bottom: 1.5px solid #1c1c1c;
+  padding-bottom: 1px;
+  transition: 0.25s ease;
+}
+
+.fabric-wrap:hover .fabric-link {
+  color: #0f7b6c;
+  border-color: #0f7b6c;
+}
+
+.fabric-tooltip {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  background: #111827;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: all 0.25s ease;
+  z-index: 12;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+
+.fabric-wrap:hover .fabric-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  margin: 4px 0 8px;
+  line-height: 1.45;
+  min-height: 42px;
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.stars {
+  color: #f7b500;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.rating-text {
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+}
+
+.price-row {
+  margin-bottom: 4px;
+}
+
+.price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f7b6c;
+  margin: 0;
+}
+
+ /* ================= RESPONSIVE ================= */
+
+  @media (max-width: 1280px) {
+    .grid {
+      grid-template-columns: repeat(4, 1fr) !important;
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .grid {
+      grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+  }
+
+  @media (max-width: 1000px) {
+
+
+    .grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+
+    .product-img {
+      height: 300px;
+      object-fit: contain;
+    }
+
+    .title {
+      font-size: 14px;
+      min-height: 40px;
+    }
+
+    .card-cart-btn {
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 14px;
+    }
+
+    .product-img {
+      height: 250px;
+      object-fit: contain;
+    }
+
+    .badge {
+      font-size: 10px;
+      top: 10px;
+      left: 10px;
+      padding: 4px 8px;
+    }
+
+    .card-icons {
+      top: 10px;
+      right: 10px;
+    }
+
+    .card-icons .q-icon {
+      font-size: 18px;
+    }
+
+    .quick-btn {
+      font-size: 11px;
+      padding: 7px 10px;
+    }
+
+    .card-content {
+      padding-top: 10px;
+    }
+
+    .title {
+      font-size: 13px;
+      min-height: 36px;
+    }
+
+    .stars {
+      font-size: 11px;
+    }
+
+    .rating-text {
+      font-size: 12px;
+    }
+
+    .price {
+      font-size: 16px;
+    }
+
+    .card-cart-btn {
+      max-width: 100%;
+      font-size: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+
+    .fabric-tooltip {
+      font-size: 10px;
+      padding: 7px 9px;
+      white-space: normal;
+      width: 150px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 12px;
+    }
+
+    .product-img {
+      height: 220px;
+    }
+
+    .title {
+      font-size: 12px;
+      min-height: 34px;
+      line-height: 1.35;
+    }
+
+    .price {
+      font-size: 15px;
+    }
+
+    .card-cart-btn {
+      font-size: 11px;
+      padding: 9px 10px;
+    }
+
+    .fabric-link {
+      font-size: 11px;
+    }
+
+    .rating-text {
+      font-size: 11px;
+    }
+
+    .stars {
+      font-size: 10px;
+    }
+  }
+

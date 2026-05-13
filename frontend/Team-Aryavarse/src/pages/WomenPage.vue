@@ -2,7 +2,7 @@
   <div class="women-page">
     <div class="main-container">
 
-      <!-- Filters — COMPONENT (desktop sidebar) -->
+      <!-- Filters sidebar -->
       <FilterSidebar
         :filterCategories="filterCategories"
         :fabrics="fabrics"
@@ -13,7 +13,6 @@
         v-model:selectedSleeves="selectedSleeves"
         v-model:selectedColors="selectedColors"
       >
-        <!-- Sort button slot for mobile bottom bar -->
         <template #sort-btn>
           <SortDropdown v-model="selectedSort" />
         </template>
@@ -23,94 +22,62 @@
       <section class="products">
         <div class="top-bar">
           <span>{{ filteredProducts.length }} items</span>
-          <SortDropdown v-model="selectedSort" />
-        </div>
-
-        <div class="grid">
-          <div
-            v-for="product in filteredProducts"
-            :key="product.id"
-            class="card"
-          >
-            <!-- Image Section -->
-            <div
-              class="img-wrapper"
-              @mouseenter="hoveredProduct = product.id"
-              @mouseleave="hoveredProduct = null"
-            >
-              <img
-                :src="hoveredProduct === product.id ? product.images?.[1] || product.image : product.image"
-                class="product-img"
-                @click="goToWomenProduct(product)"
-              />
-
-              <span v-if="product.isBestSeller" class="badge">Bestseller</span>
-
-              <!-- Wishlist -->
-              <div class="card-icons" @click.stop="handleWishlist(product)">
-                <q-icon
-                  :name="isInWishlist(product.id) ? 'favorite' : 'favorite_border'"
-                  size="22px"
-                  :class="{ 'active-heart': isInWishlist(product.id) }"
-                />
-                <span class="fly-heart h1" :class="{ show: flyingHeartId === product.id }">❤</span>
-                <span class="fly-heart h2" :class="{ show: flyingHeartId === product.id }">❤</span>
-                <span class="fly-heart h3" :class="{ show: flyingHeartId === product.id }">❤</span>
-                <span class="fly-heart h4" :class="{ show: flyingHeartId === product.id }">❤</span>
-                <span class="fly-heart h5" :class="{ show: flyingHeartId === product.id }">❤</span>
-              </div>
-
-              <!-- Hover button -->
-              <div class="hover-actions" v-if="hoveredProduct === product.id">
-                <button class="quick-btn" @click="goToWomenProduct(product)">
-                  Quick View
-                </button>
-              </div>
-            </div>
-
-            <!-- Content -->
-            <div class="card-content">
-              <!-- Fabric tooltip -->
-              <div class="fabric-wrap">
-                <span class="fabric-link">{{ product.fabric }}</span>
-                <div class="fabric-tooltip">
-                  {{ getFabricDescription(product.fabric) }}
-                </div>
-              </div>
-
-              <p class="title">{{ product.title }}</p>
-
-              <div class="rating-row">
-                <span class="stars">★★★★★</span>
-                <span class="rating-text">{{ product.rating || 4.8 }}</span>
-              </div>
-
-              <div class="price-row">
-                <p class="price">₹ {{ Number(product.price).toFixed(2) }}</p>
-              </div>
-            </div>
+          <div class="desktop-sort-only">
+            <SortDropdown v-model="selectedSort" />
           </div>
         </div>
+
+        <!-- GRID — ProductCard component 
+        <div class="grid">
+          <ProductCard
+            v-for="product in filteredProducts"
+            :key="product.id"
+            :product="product"
+            @go-to-product="goToWomenProduct"
+          />
+        </div>-->
+
+                <!-- GRID -->
+  <ProductPagination :products="filteredProducts">
+
+    <template #default="{ paginatedProducts }">
+      <div class="grid">
+        <ProductCard
+          v-for="product in paginatedProducts"
+          :key="product.id"
+          :product="product"
+           :wishlistIds="wishlistIds"
+  @wishlist-updated="updateWishlist"
+          @go-to-product="goToWomenProduct"
+        />
+      </div>
+    </template>
+
+  </ProductPagination>
+
       </section>
 
     </div>
 
-    <!-- Mobile bottom spacing so products aren't hidden behind sticky bar -->
+    <!-- Mobile bottom spacing -->
     <div class="mobile-bottom-spacer" />
   </div>
 </template>
+
 <script setup>
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 import { api } from 'boot/axios'
 import SortDropdown from 'src/components/SortDropdown.vue'
 import FilterSidebar from 'src/components/FilterSidebar.vue'
+import ProductCard from 'src/components/ProductCard.vue'
+import ProductPagination from 'src/components/ProductPagination.vue'
 
 const router = useRouter()
 
 const selectedSort = ref('')
-const hoveredProduct = ref(null)
-const flyingHeartId = ref(null)
+//const hoveredProduct = ref(null)
+//const flyingHeartId = ref(null)
 const loading = ref(false)
 
 const wishlistIds = ref([])
@@ -434,23 +401,30 @@ const loadWomenProducts = async () => {
   }
 }
 
-const isProductInWishlist = (product) => {
-  return wishlistIds.value.includes(
-    Number(product.variant_id)
-  )
-}
+const updateWishlist = ({
+  type,
+  variantId
+}) => {
 
-const isInWishlist = (productId) => {
-  const product =
-    allWomenProducts.value.find(
-      (p) => p.id === productId
-    )
+  if (type === 'add') {
 
-  if (!product) return false
+    if (
+      !wishlistIds.value.includes(
+        variantId
+      )
+    ) {
+      wishlistIds.value.push(
+        variantId
+      )
+    }
 
-  return wishlistIds.value.includes(
-    Number(product.variant_id)
-  )
+  } else {
+
+    wishlistIds.value =
+      wishlistIds.value.filter(
+        (id) => id !== variantId
+      )
+  }
 }
 
 const loadWishlistIds = async () => {
@@ -488,81 +462,6 @@ const loadWishlistIds = async () => {
   }
 }
 
-const handleWishlist = async (product) => {
-  try {
-    const userId = getUserId()
-
-    if (!userId) {
-      router.push('/login')
-      return
-    }
-
-    const variantId = Number(
-      product.variant_id
-    )
-
-    if (
-      !variantId ||
-      Number.isNaN(variantId)
-    ) {
-      console.error(
-        'VARIANT ID MISSING:',
-        product
-      )
-      return
-    }
-
-    if (isProductInWishlist(product)) {
-      await api.delete('/wishlist/remove', {
-        params: {
-          user_id: userId
-        },
-
-        data: {
-          variant_id: variantId
-        }
-      })
-
-      wishlistIds.value =
-        wishlistIds.value.filter(
-          (id) => id !== variantId
-        )
-    } else {
-      await api.post(
-        '/wishlist/add',
-        {
-          variant_id: variantId
-        },
-        {
-          params: {
-            user_id: userId
-          }
-        }
-      )
-
-      if (
-        !wishlistIds.value.includes(
-          variantId
-        )
-      ) {
-        wishlistIds.value.push(
-          variantId
-        )
-      }
-    }
-
-    flyingHeartId.value = product.id
-
-    setTimeout(() => {
-      flyingHeartId.value = null
-    }, 900)
-  } catch (err) {
-    console.error(
-      'WISHLIST ERROR:',
-      err.response?.data || err
-    )
-  }
-}
 
 const goToWomenProduct = (product) => {
   const productId =
@@ -571,22 +470,6 @@ const goToWomenProduct = (product) => {
     product.id
 
   router.push(`/women-product/${productId}`)
-}
-
-const getFabricDescription = (fabric) => {
-  if (fabric === 'Classic') {
-    return 'Classic fit • Soft feel • Everyday comfort'
-  }
-
-  if (fabric === 'Ecoflex') {
-    return 'Ecoflex stretch • Breathable • Premium movement'
-  }
-
-  if (fabric === 'Ecoflex Lite') {
-    return 'Lightweight • Flexible • Comfortable'
-  }
-
-  return 'Premium scrub fabric'
 }
 
 const filteredProducts = computed(() => {

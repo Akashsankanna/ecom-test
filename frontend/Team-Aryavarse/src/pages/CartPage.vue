@@ -11,11 +11,15 @@
               :key="item.id || item.cart_item_id"
               class="cart-card"
             >
+            <div class="cart-img-wrap">
               <img
                 :src="item.image || item.image_url || item.product_image || '/favicon.ico'"
                 :alt="item.title || item.product_name || item.name || 'Product'"
                 class="cart-img"
               />
+              <div class="img-shine"></div>
+              </div>
+              
 
               <div class="cart-info">
                 <h3 class="product-title">
@@ -44,9 +48,9 @@
                 </div>
               </div>
 
-              <div class="price-box">
+              <!--<div class="price-box">
                 ₹ {{ (Number(item.price || 0) * Number(item.qty || item.quantity || 1)).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}
-              </div>
+              </div>-->
 
               <button class="delete-btn" @click="removeFromCart(item.id || item.cart_item_id)">
                 <q-icon name="delete_outline" size="22px" />

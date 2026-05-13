@@ -23,17 +23,37 @@
 
       <!-- links -->
       <div class="links">
-        <span @click="$router.push('/')">Home</span>
-        <span @click="$router.push('/men')">Men</span>
-        <span @click="$router.push('/women')">Women</span>
-        <span @click="$router.push('/bulk')">Bulk Orders</span>
-        <span @click="$router.push('/about')">About Us</span>
+      <span @click="$router.push('/')" :class="{ active: isActive('/') }">Home</span>
+
+      <span @click="$router.push('/men')" :class="{ active: isActive('/men') }">Men</span>
+
+      <span @click="$router.push('/women')" :class="{ active: isActive('/women') }">Women</span>
+
+      <span @click="$router.push('/bulk')" :class="{ active: isActive('/bulk') }">Bulk Orders</span>
+
+      <span @click="$router.push('/about')" :class="{ active: isActive('/about') }">About Us</span>
+        
       </div>
 
       <!-- icons -->
       <div class="icons">
-        <q-icon name="search" size="22px" class="icon" @click="searchOpen = true" />
 
+      <!-- NAVBAR SEARCH BOX -->
+<div class="nav-search-box">
+  
+  <q-icon name="search" class="nav-search-icon" />
+
+<input
+  v-model="searchQuery"
+  @keyup.enter="handleSearchEnter"
+  @input="searchQuery = searchQuery.slice(0, 20)"
+  type="text"
+  maxlength="20"
+  placeholder="Search scrubs, aprons..."
+  class="nav-search-input"
+/>
+
+</div>
         <div class="icon-box" @click="$router.push('/wishlist')">
           <q-icon name="favorite" size="22px" class="icon heart-icon" />
         </div>
@@ -65,56 +85,11 @@
       </div>
     </div>
 
-    <!-- SEARCH OVERLAY -->
-    <div v-if="searchOpen" class="search-popup">
-      <div class="search-header">
-        <div class="search-input-wrapper">
-          <input
-            v-model="searchQuery"
-            @keyup.enter="handleSearchEnter"
-            type="text"
-            placeholder="Search scrubs, aprons..."
-            class="search-input"
-          />
-
-          <div v-if="suggestions.length" class="dropdown">
-            <div
-              v-for="item in suggestions"
-              :key="item.route"
-              class="item"
-              @click="goToResult(item)"
-            >
-              {{ item.label }}
-            </div>
-          </div>
-
-          <div v-if="searchQuery && !suggestions.length" class="no-result">
-            No product found
-          </div>
-        </div>
-
-        <span class="search-close" @click="searchOpen = false">✕</span>
-      </div>
-
-      <div v-if="recentSearches.length" class="recent-box">
-        <div class="recent-title">Recent Searches</div>
-
-        <div class="recent-list">
-          <span
-            v-for="item in recentSearches"
-            :key="item"
-            class="recent-chip"
-            @click="searchQuery = item"
-          >
-            {{ item }}
-          </span>
-        </div>
-      </div>
-    </div>
 
     <!-- MOBILE MENU -->
     <div v-if="menuOpen" class="mobile-menu-overlay" @click="menuOpen = false"></div>
 
+        <!-- MOBILE SIDEBAR MENU -->
     <div class="mobile-sidebar" :class="{ open: menuOpen }">
       <div class="mobile-menu-header">
         <span class="menu-title">Menu</span>
@@ -125,68 +100,105 @@
         <span @click="goToPage('/')">Home</span>
         <span @click="goToPage('/men')">Men</span>
         <span @click="goToPage('/women')">Women</span>
-        <span @click="goToPage('/aprons')">Aprons</span>
         <span @click="goToPage('/bulk')">Bulk Orders</span>
         <span @click="goToPage('/about')">About Us</span>
       </div>
     </div>
 
-    <!-- MAIN -->
+    <!-- Main page area -->
     <q-page-container class="main-page-container">
+      <!-- key forces clean re-render when route changes -->
       <router-view :key="$route.fullPath" />
     </q-page-container>
-
-    <!-- FOOTER -->
-    <footer class="footer-section">
-      <div class="footer-container">
-        <div class="footer-col">
-          <h2 class="footer-logo">PARALLEL</h2>
-          <p class="footer-text">
-            A Division of Pushpa Textile <br />
-            Premium scrub wear crafted for comfort, style, and professionalism.
-          </p>
-        </div>
-
-        <div class="footer-col">
-          <h4>Quick Links</h4>
-          <ul>
-            <li @click="$router.push('/')">Home</li>
-            <li @click="$router.push('/bulk')">Bulk Orders</li>
-            <li @click="$router.push('/about')">About Us</li>
-            <li @click="$router.push('/wishlist')">Wishlist</li>
-            <li @click="$router.push('/cart')">Cart</li>
-          </ul>
-        </div>
-
-        <div class="footer-col">
-          <h4>Categories</h4>
-          <ul>
-            <li @click="$router.push('/men')">Men Scrubs</li>
-            <li @click="$router.push('/women')">Women Scrubs</li>
-            <li @click="$router.push('/aprons')">Aprons</li>
-          </ul>
-        </div>
-
-        <div class="footer-col">
-          <h4>Contact Us</h4>
-          <p><q-icon name="location_on" size="18px" /> Solapur, Maharashtra</p>
-          <p><q-icon name="call" size="18px" /> +91 98765 43210</p>
-          <p><q-icon name="mail" size="18px" /> info@twoelephants.org</p>
-        </div>
-      </div>
-
-      <div class="footer-bottom">
-        <p>© 2026 PARALLEL. All Rights Reserved.</p>
-      </div>
-    </footer>
   </q-layout>
+
+   <!-- ---------------- FOOTER ---------------- -->
+<footer class="footer-section">
+  <div class="footer-container">
+    
+    <!-- Brand -->
+    <div class="footer-col">
+      <h2 class="footer-logo">PARALLEL</h2>
+      <p class="footer-text">
+        A Division of Pushpa Textile <br />
+        Premium scrub wear crafted for comfort, style, and professionalism.
+      </p>
+
+    <div class="social-icons">
+        <a href="https://www.instagram.com/" target="_blank" class="social-icon">
+        <img src="/icons/instagram.png" alt="Instagram" class="social-img" />
+        </a>
+
+        <a href="https://www.facebook.com/" target="_blank" class="social-icon">
+        <img src="/icons/facebook.png" alt="Instagram" class="social-img" />
+        </a>
+
+        <a  href="https://www.linkedin.com/company/pushpatextile/" 
+        target="_blank" class="social-icon">
+        <img src="/icons/linkdin.png" alt="Instagram" class="social-img" />
+        </a>
+
+    </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul>
+        <li @click="$router.push('/')">Home</li>
+        <li @click="$router.push('/bulk')">Bulk Orders</li>
+        <li @click="$router.push('/about')">About Us</li>
+        <li @click="$router.push('/wishlist')">Wishlist</li>
+        <li @click="$router.push('/cart')">Cart</li>
+      </ul>
+    </div>
+
+    <!-- Categories -->
+    <div class="footer-col">
+      <h4>Categories</h4>
+      <ul>
+        <li @click="$router.push('/men')">Men Scrubs</li>
+        <li @click="$router.push('/women')">Women Scrubs</li>
+        <!---<li @click="$router.push('/aprons')">Aprons</li>-->
+      </ul>
+    </div>
+
+    <!-- Contact -->
+    <div class="footer-col">
+      <h4>Contact Us</h4>
+      <p><q-icon name="location_on" size="18px" /> Solapur, Maharashtra</p>
+      <p><q-icon name="call" size="18px" /> +91 98765 43210</p>
+      <p><q-icon name="mail" size="18px" />
+      <a href="https://mail.google.com/mail/?view=cm&fs=1&to=info@twoelephants.org" 
+      target="_blank"
+      rel="noopener noreferrer"
+      class="footer-email"
+      >
+      info@twoelephants.org
+      </a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Bottom -->
+  <div class="footer-bottom">
+    <p>© 2026 PARALLEL. All Rights Reserved.</p>
+  </div>
+</footer>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute  } from 'vue-router'
 import { cart } from 'src/stores/shop'
 import { useAuthStore } from 'src/stores/auth' // ✅ added
+
+
+//function
+
+const route = useRoute()
+
+const isActive = (path) => route.path === path
 
 const router = useRouter()
 const authStore = useAuthStore()

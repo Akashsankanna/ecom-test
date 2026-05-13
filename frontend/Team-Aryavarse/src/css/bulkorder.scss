@@ -1,20 +1,20 @@
 //Variables 
-$teal: #009688;
+$teal:       #009688;
 $teal-light: #e0f2f1;
-$teal-mid: #4db6ac;
-$text-dark: #1a1a2e;
+$teal-mid:   #4db6ac;
+$text-dark:  #1a1a2e;
 $text-muted: #777;
-$border: #e0e0e0;
-$radius-xl: 20px;
-$radius-lg: 16px;
-$radius-md: 10px;
-$radius-sm: 6px;
-$shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
-$shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
+$border:     #e0e0e0;
+$radius-xl:  20px;
+$radius-lg:  16px;
+$radius-md:  10px;
+$radius-sm:  6px;
+$shadow-md:  0 8px 30px rgba(0,0,0,0.08);
+$shadow-lg:  0 16px 50px rgba(0,0,0,0.12);
 
 // Page Wrapper
 .bulk-page {
-  background: #f5f7f8;
+  //background: #f5f7f8;
   min-height: 100vh;
 }
 
@@ -22,74 +22,12 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 .bulk-banner {
   position: relative;
   width: 100%;
-  height: 65vh;
-  margin-top: 20px;
   overflow: hidden;
-
-  &__img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: right center;
-  }
-
-  &__overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to right,
-        rgba(0, 0, 0, 0.65) 0%,
-        rgba(0, 0, 0, 0.25) 100%);
-    display: flex;
-    align-items: center;
-    padding: 0 6vw;
-  }
-
-  &__content {
-    max-width: 600px;
-    color: white;
-  }
-
-  &__eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: $teal-mid;
-    margin: 0 0 10px;
-    text-transform: uppercase;
-  }
-
-  &__title {
-    font-size: clamp(28px, 5vw, 52px);
-    font-weight: 800;
-    line-height: 1.15;
-    margin: 0 0 12px;
-  }
-
-  &__sub {
-    font-size: 16px;
-    opacity: 0.9;
-    margin: 0 0 20px;
-    line-height: 1.6;
-  }
-
-  &__badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .badge {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 30px;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 500;
-  }
+  height: auto;
+  min-height: unset;
+  padding: 0;
 }
 
-// Banner Slider
 .bulk-slider__track {
   display: flex;
   width: 100%;
@@ -100,17 +38,126 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 
 .bulk-slider__slide {
   min-width: 100%;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: relative;
-  flex-shrink: 0;
   overflow: hidden;
+  min-height: auto;
 }
 
-// Dot Indicators 
+// Exactly 
+.bulk-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 0 40px;
+}
+
+
+.bulk-banner__content {
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+  color: #1a1a2e;
+}
+
+.bulk-image-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bulk-banner__img {
+  width: 100%;
+  max-width: 550px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+  height: auto;
+}
+
+.bulk-banner__eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #4db6ac;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.bulk-banner__title {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0 0 8px;
+  max-width: 550px;
+}
+
+.bulk-banner__sub {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.bulk-banner__badges {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  //justify-content: center;
+}
+
+.badge {
+  //background: #99dfdf;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 30px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+// Fade overlay
+.bulk-fade-overlay {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0s;
+}
+
+.bulk-fade-overlay.is-fading {
+  animation: overlayFadePulse 0.5s ease forwards;
+}
+
+@keyframes overlayFadePulse {
+  0%  
+  { 
+    opacity: 0; 
+  }
+  40%  
+  { 
+    opacity: 0.55; 
+  }
+  100% 
+  { 
+    opacity: 0; 
+  }
+}
+
+// Dot Indicators
 .bulk-slider__dots {
   position: absolute;
-  bottom: 18px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -118,22 +165,114 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   gap: 8px;
   z-index: 10;
 }
-
+ 
 .bulk-slider__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.2);
   border: none;
   cursor: pointer;
   padding: 0;
   transition: all 0.35s ease;
-
+ 
   &--active {
     width: 26px;
     border-radius: 4px;
-    background: white;
+    background: $teal;
   }
+}
+
+// Responsive 
+@media (max-width: 1280px) {
+  .bulk-banner    
+  { 
+    min-height: 460px; 
+    padding: 3px 0;
+  }
+  .bulk-inner     
+  { 
+    max-width: 1100px; 
+    padding: 30px 36px; 
+    //margin: 0 auto;
+    gap: 28px; 
+  }
+  .bulk-slider__slide {
+    padding: 20px 0 20px;
+  }
+  /*.bulk-slider__dots {
+    bottom: 50px;             
+  }*/
+  .bulk-banner__title 
+  { 
+    font-size: 34px; 
+  }
+  .bulk-banner__img   
+  { 
+    max-width: 600px; 
+  }
+}
+
+.bulk-banner__badges {
+  .badge:nth-child(1) {
+    background: #e0f2f1;
+    color: #00695c;
+    border: 1px solid #80cbc4;
+  }
+
+  .badge:nth-child(2) {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+  }
+
+  .badge:nth-child(3) {
+    background: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffcc80;
+  }
+
+  .badge:nth-child(4) {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #90caf9;
+  }
+}
+
+/* Tablet iPad Air / Pro / Surface fix */
+@media (max-width: 1024px) {
+  .bulk-banner__badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;   
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .badge {
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bulk-inner {
+    gap: 20px;
+     padding: 28px 24px;
+  }
+
+  .bulk-banner__title {
+    font-size: 30px;
+  }
+
+  .bulk-banner__img {
+    max-width: 320px;
+  }
+
+  /*.bulk-slider__dots {
+    bottom: 10px;             
+  }*/
 }
 
 // Main Container
@@ -211,6 +350,8 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   height: 1px;
   background: $border;
   margin: 18px 0;
+    display: block;   // ensure visible
+  width: 100%;
 }
 
 .trust-badge {
@@ -292,7 +433,7 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 
   &__sub {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255,255,255,0.85);
     margin: 0;
   }
 }
@@ -350,15 +491,20 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   }
 }
 
-.form-field {
-  width: 100%;
-}
+.form-field { width: 100%; }
 
 .field-label {
   font-size: 13px;
   font-weight: 600;
   color: $text-dark;
   margin: 0 0 8px;
+}
+
+.q-field textarea {
+  resize: vertical;
+  max-height: 120px;
+  min-height: 80px;
+  overflow-y: auto;
 }
 
 // Product Row Card
@@ -369,6 +515,7 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   padding: 16px;
   margin-bottom: 12px;
   transition: border-color 0.2s;
+  display: block;  
 
   /*&:hover {
     //border-color: $teal-mid;
@@ -432,14 +579,6 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 
 .product-field {
   width: 100%;
-
-  /* &--qty {
-    // smaller column for quantity
-  }
-
-  &--color {
-    // color can be wider
-  }*/
 }
 
 // Add Product Button 
@@ -464,8 +603,8 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 }
 
 // Customization Toggle 
-.custom-toggle {
-  margin-bottom: 14px;
+.custom-toggle { 
+  margin-bottom: 14px; 
 }
 
 .custom-block {
@@ -507,8 +646,8 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
     background: $teal;
     color: rgb(19, 16, 16);
 
-    .chip-price {
-      color: rgba(255, 255, 255, 0.8);
+    .chip-price { 
+      color: rgba(255,255,255,0.8); 
     }
   }
 
@@ -535,9 +674,7 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   font-size: 13px;
   transition: all 0.18s;
 
-  &:hover {
-    border-color: $teal-mid;
-  }
+  &:hover { border-color: $teal-mid; }
 
   &--active {
     border-color: $teal;
@@ -557,9 +694,7 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: background 0.18s;
 
-  &:hover {
-    background: $teal-light;
-  }
+  &:hover { background: $teal-light; }
 
   .upload-text {
     font-size: 13px;
@@ -622,11 +757,7 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
     margin-bottom: 14px;
   }
 
-  .quote-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+  .quote-rows { display: flex; flex-direction: column; gap: 8px; }
 
   .quote-row {
     display: flex;
@@ -680,10 +811,7 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   max-width: 420px;
   width: 90vw;
 
-  .success-icon {
-    font-size: 52px;
-    margin-bottom: 16px;
-  }
+  .success-icon { font-size: 52px; margin-bottom: 16px; }
 
   h3 {
     font-size: 22px;
@@ -692,15 +820,9 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
     margin: 0 0 12px;
   }
 
-  p {
-    font-size: 14px;
-    color: $text-muted;
-    margin: 0 0 10px;
-  }
+  p { font-size: 14px; color: $text-muted; margin: 0 0 10px; }
 
-  .success-sub {
-    font-size: 13px;
-  }
+  .success-sub { font-size: 13px; }
 
   .done-btn {
     margin-top: 20px;
@@ -712,8 +834,8 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 
 // Utilities
 .mt-14 {
-  margin-top: 14px;
-}
+   margin-top: 14px; 
+  }
 
 .required {
   color: #e53935;
@@ -727,20 +849,18 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
   transition: all 0.3s ease;
   overflow: hidden;
 }
-
 .slide-down-enter-from,
 .slide-down-leave-to {
   max-height: 0;
   opacity: 0;
 }
-
 .slide-down-enter-to,
 .slide-down-leave-from {
   max-height: 1200px;
   opacity: 1;
 }
 
-//Responsive 
+//Responsive , /* Mobile */
 @media (max-width: 768px) {
   .bulk-banner {
     height: auto;
@@ -750,12 +870,13 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
 
     &__img {
       width: 100%;
-      height: 220px;
-      object-fit: contain;
+      /*height: 220px;*/
+      object-fit: contain;        
       object-position: center;
-      background: #f0f9f8;
+      background: transparent;        
       display: block;
       flex-shrink: 0;
+      max-width: 260px;
     }
 
     &__overlay {
@@ -765,21 +886,17 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
       padding: 18px 16px 22px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      /* ← center */
-      text-align: center;
-      /* ← center */
+      justify-content: center;    /* ← center */
+      text-align: center;         /* ← center */
     }
 
     &__content {
       max-width: 100%;
       width: 100%;
-      text-align: center;
-      /* ← center */
+      text-align: center;         /* ← center */
       display: flex;
       flex-direction: column;
-      align-items: center;
-      /* ← center */
+      align-items: center;        /* ← center */
     }
 
     &__eyebrow {
@@ -791,128 +908,133 @@ $shadow-lg: 0 16px 50px rgba(0, 0, 0, 0.12);
     }
 
     &__title {
-      font-size: 18px;
+      font-size: 18px;//24
       font-weight: 800;
       line-height: 1.3;
       margin-bottom: 10px;
       color: #1a1a2e;
       text-align: center;
+      max-width: 100%; 
     }
 
     &__sub {
       display: block;
-      font-size: 12px;
+      font-size: 12px; //13
       color: #555;
       margin-bottom: 12px;
       line-height: 1.5;
       text-align: center;
+
     }
 
     &__badges {
       gap: 8px;
       flex-wrap: wrap;
+      justify-content: center;    /* ← badges center */
+    }
+
+    .bulk-slider__slide {
+      padding: 24px 0 32px;
+      min-height: unset;
+    }
+    .bulk-inner {
+      flex-direction: column-reverse;
+      align-items: center;
       justify-content: center;
-      /* ← badges center */
+      gap: 12px;
+      padding: 20px 20px;
+      max-width: 100%;
+
+      text-align: center;
     }
-
-    .badge {
-      font-size: 11px;
-      padding: 5px 12px;
-      border-radius: 30px;
-      font-weight: 600;
-      backdrop-filter: none;
-
-      &:nth-child(1) {
-        background: #e0f2f1;
-        color: #00695c;
-        border: 1px solid #80cbc4;
-      }
-
-      &:nth-child(2) {
-        background: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #a5d6a7;
-      }
-
-      &:nth-child(3) {
-        background: #fff3e0;
-        color: #e65100;
-        border: 1px solid #ffcc80;
-      }
-
-      &:nth-child(4) {
-        background: #e3f2fd;
-        color: #1565c0;
-        border: 1px solid #90caf9;
-      }
+    .bulk-image-wrapper 
+    { 
+      width: 100%; 
+      justify-content: center; 
     }
+  .q-field--type-textarea .q-field__control {
+    min-height: 70px !important;   // full control height
   }
 
-  .bulk-slider__track {
-    height: auto;
+  .q-field--type-textarea .q-field__native {
+    min-height: 60px !important;   // actual textarea
+    line-height: 1.4 !important;
   }
 
-  .bulk-slider__slide {
-    height: auto;
-    min-height: unset;
+  .q-field textarea {
+    min-height: 60px !important;
+  }
+}
+
+  .bulk-slider__track 
+  { 
+    height: auto; 
+  }
+  .bulk-slider__slide 
+  { 
+    height: auto; 
+    min-height: unset; 
   }
 
-  .bulk-container {
-    padding: 20px 14px 40px;
+  .bulk-container 
+  { 
+    padding: 20px 14px 40px; 
   }
-
-  .bulk-form {
-    padding: 18px;
+  .bulk-form      
+  { 
+    padding: 18px; 
   }
-
-  .form-card__header {
-    padding: 18px;
+  .form-card__header 
+  { 
+    padding: 18px; 
   }
-
-  .custom-type-grid .type-chip {
-    font-size: 12px;
-    padding: 7px 11px;
+  .custom-type-grid .type-chip 
+  { 
+    font-size: 12px; 
+    padding: 7px 11px; 
   }
 }
 
 @media (max-width: 480px) {
   .bulk-banner {
-    &__img {
-      height: 190px;
+    &__img   
+    { 
+      height: 190px; 
     }
-
-    &__title {
-      font-size: 16px;
+    &__title 
+    { 
+      font-size: 16px; 
     }
-
-    &__sub {
-      font-size: 11px;
+    &__sub   
+    { 
+      font-size: 11px; 
     }
-
-    .badge {
-      font-size: 10px;
-      padding: 4px 10px;
+    .badge   
+    { 
+      font-size: 10px; 
+      padding: 4px 10px; 
     }
   }
 }
 
 @media (max-width: 375px) {
   .bulk-banner {
-    &__img {
-      height: 165px;
+    &__img 
+    { 
+      height: 165px; 
     }
-
-    &__title {
-      font-size: 14px;
+    &__title 
+    { 
+      font-size: 14px; 
     }
-
-    &__sub {
-      display: none;
+    &__sub   
+    { 
+      display: none; 
     }
-
-    .badge {
-      font-size: 9px;
-      padding: 3px 8px;
+    .badge   
+    { 
+      font-size: 9px; 
+      padding: 3px 8px; 
     }
   }
 }

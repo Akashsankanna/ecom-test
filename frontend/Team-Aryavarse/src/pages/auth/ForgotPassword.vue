@@ -1,13 +1,26 @@
 <template>
-  <div class="card">
-    <h3>Forgot Password</h3>
-    <p class="sub">Reset your password using your registered phone number</p>
+ <div class="login-card">
+     <h3 class="login-title">Forgot Password</h3>
+    <p class="login-sub">Reset your password using your registered phone number</p>
 
     <!-- Step 1: Enter phone -->
     <template v-if="step === 1">
-      <input v-model="phone" placeholder="Registered Phone Number (10 digits)" maxlength="10" />
+            <input
+  class="login-input"
+  v-model="phone"
+  placeholder="Registered Phone Number (10 digits)"
+  maxlength="10"
+
+  required
+
+  @input="phone = phone.replace(/[^0-9]/g, '').slice(0,10)"
+
+  pattern="[0-9]{10}"
+
+  title="Enter valid 10-digit phone number"
+/>
       <p class="error" v-if="error">{{ error }}</p>
-      <button class="btn" @click="sendOtp" :disabled="loading">
+      <button class="login-btn" @click="sendOtp" :disabled="loading">
         {{ loading ? 'SENDING...' : 'SEND OTP' }}
       </button>
     </template>
@@ -17,7 +30,7 @@
       <p class="sub">OTP sent to +91 {{ phone }}</p>
       <input v-model="otp" placeholder="Enter 6-digit OTP" maxlength="6" />
       <p class="error" v-if="error">{{ error }}</p>
-      <button class="btn" @click="verifyOtp" :disabled="loading">
+      <button class="login-btn" @click="verifyOtp" :disabled="loading">
         {{ loading ? 'VERIFYING...' : 'VERIFY OTP' }}
       </button>
       <p class="resend" @click="sendOtp">Resend OTP</p>
@@ -29,7 +42,7 @@
       <input v-model="newPassword"     type="password" placeholder="New Password (min 8 chars)" />
       <input v-model="confirmPassword" type="password" placeholder="Confirm New Password" />
       <p class="error" v-if="error">{{ error }}</p>
-      <button class="btn" @click="resetPassword" :disabled="loading">
+      <button class="login-btn" @click="resetPassword" :disabled="loading">
         {{ loading ? 'UPDATING...' : 'SET NEW PASSWORD' }}
       </button>
     </template>
@@ -38,11 +51,11 @@
     <template v-else-if="step === 4">
       <div class="success-box">
         <p>🎉 Password updated successfully!</p>
-        <button class="btn" @click="$router.push('/login')">LOGIN NOW</button>
+        <button class="login-btn" @click="$router.push('/login')">LOGIN NOW</button>
       </div>
     </template>
 
-    <p class="switch" v-if="step < 4">
+    <p class="login-switch" v-if="step < 4">
       Remember your password?
       <span @click="$router.push('/login')">Login</span>
     </p>

@@ -1,4 +1,19 @@
-.card {
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 30px 16px;
+  position: relative;// back arrow
+
+  /* REMOVE THIS */
+  /* background: linear-gradient(135deg, #f5fbff, #eef7f5); */
+
+  /* ADD THIS */
+  background: transparent;
+}
+
+.login-card {
   width: 100%;
   max-width: 380px;
   padding: 34px 28px;
@@ -10,20 +25,20 @@
   backdrop-filter: blur(14px);
 }
 
-h3 {
+.login-title {
   margin-bottom: 8px;
   font-size: 30px;
   font-weight: 800;
   color: #0f2f57;
 }
 
-.sub {
+.login-sub {
   font-size: 14px;
   color: #667085;
   margin-bottom: 24px;
 }
 
-input {
+.login-input {
   width: 100%;
   padding: 13px 14px;
   margin: 10px 0;
@@ -35,13 +50,13 @@ input {
   transition: 0.25s ease;
 }
 
-input:focus {
+.login-input:focus {
   border-color: #20bfb8;
   background: white;
   box-shadow: 0 0 0 3px rgba(32, 191, 184, 0.08);
 }
 
-.btn {
+.login-btn {
   width: 100%;
   padding: 13px;
   margin-top: 16px;
@@ -51,28 +66,29 @@ input:focus {
   cursor: pointer;
   font-weight: 700;
   font-size: 15px;
-  background: linear-gradient(135deg, #0B2C4A, #123D6B, #16A085);
+  background: linear-gradient(135deg, #0b2c4a, #123d6b, #16a085);
   transition: 0.25s ease;
 }
 
-.btn:hover {
+.login-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(15, 47, 87, 0.18);
 }
 
-.switch {
+.login-switch {
   margin-top: 18px;
   font-size: 13px;
   color: #667085;
-
-  span {
-    color: #0f2f57;
-    font-weight: 700;
-    cursor: pointer;
-    margin-left: 4px;
-  }
 }
 
-span:hover {
+.login-switch span {
+  color: #0f2f57;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.login-switch span:hover {
   text-decoration: underline;
 }
+

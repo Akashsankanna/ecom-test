@@ -92,7 +92,6 @@
 
         <!-- CUSTOMIZATION -->
         <ProductCustomization
-          :product-id="product?.id"
           @customization-updated="onCustomizationUpdated"
         />
 
@@ -265,7 +264,6 @@
       <ProductReviews
         ref="reviewsRef"
         :reviews="product?.reviews || []"
-        :productId="product?.id"
         @updateReviews="addReview"
       />
     </div>

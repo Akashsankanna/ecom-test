@@ -5,7 +5,19 @@
 
     <!-- Step 1: Enter phone -->
     <template v-if="step === 1">
-      <input v-model="phone" placeholder="Phone Number (10 digits)" maxlength="10" />
+           <input
+  v-model="phone"
+  placeholder="Phone Number (10 digits)"
+  maxlength="10"
+
+  required
+
+  @input="phone = phone.replace(/[^0-9]/g, '').slice(0,10)"
+
+  pattern="[0-9]{10}"
+
+  title="Enter valid 10-digit phone number"
+/>
       <p class="error" v-if="error">{{ error }}</p>
       <button class="btn" @click="sendOtp" :disabled="loading">
         {{ loading ? 'SENDING...' : 'SEND OTP' }}
@@ -15,7 +27,19 @@
     <!-- Step 2: Verify OTP -->
     <template v-else-if="step === 2">
       <p class="sub">OTP sent to +91 {{ phone }}</p>
-      <input v-model="otp" placeholder="Enter 6-digit OTP" maxlength="6" />
+      <input
+  v-model="otp"
+  placeholder="Enter 6-digit OTP"
+  maxlength="6"
+
+  required
+
+  @input="otp = otp.replace(/[^0-9]/g, '').slice(0,6)"
+
+  pattern="[0-9]{6}"
+
+  title="Enter valid 6-digit OTP"
+/>
       <p class="error" v-if="error">{{ error }}</p>
       <button class="btn" @click="verifyOtp" :disabled="loading">
         {{ loading ? 'VERIFYING...' : 'VERIFY OTP' }}
@@ -26,9 +50,50 @@
     <!-- Step 3: Fill details -->
     <template v-else-if="step === 3">
       <p class="success">✅ Phone Verified — Fill in your details</p>
-      <input v-model="name"     placeholder="Full Name" />
-      <input v-model="email"    type="email"    placeholder="Email Address" />
-      <input v-model="password" type="password" placeholder="Password (min 8 chars)" />
+      <!--<input v-model="name"     placeholder="Full Name" />-->
+
+      <input
+  v-model="name"
+  placeholder="Full Name"
+
+  required
+  maxlength="20"
+
+  @input="name = $event.target.value.replace(/[^A-Za-z\s]/g, '')"
+
+  pattern="[A-Za-z\s]+"
+
+  title="Only letters allowed"
+/>
+       <!--<input v-model="email"    type="email"    placeholder="Email Address" />-->
+<input
+  v-model="email"
+  type="email"
+  placeholder="Email Address"
+
+  required
+  maxlength="30"
+
+  @input="email = email.replace(/[^a-zA-Z0-9@.]/g, '')"
+
+  pattern="[a-zA-Z0-9.]+@gmail\.com"
+
+  title="Enter valid @gmail.com email"
+/>
+
+      <!--<input v-model="password" type="password" placeholder="Password (min 8 chars)" />-->
+
+<input
+  v-model="password"
+  type="password"
+  placeholder="Password (min 8 chars)"
+
+  required
+  minlength="8"
+  maxlength="20"
+
+  title="Password must be between 8 to 20 characters"
+/>
       <p class="error" v-if="error">{{ error }}</p>
       <button class="btn" @click="completeSignup" :disabled="loading">
         {{ loading ? 'CREATING...' : 'CREATE ACCOUNT' }}

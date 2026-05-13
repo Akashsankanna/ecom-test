@@ -1,7 +1,19 @@
 <template>
   <q-page class="wishlist-page">
     <div class="wishlist-container">
-      <h1 class="wishlist-heading">My Wishlist</h1>
+
+      <!-- Header -->
+      <div class="wishlist-header-row">
+        <div class="heading-left">
+          <span class="heading-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#0f7b6c" stroke="#0f7b6c" stroke-width="1.5">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </span>
+          <h1 class="wishlist-heading">My Wishlist</h1>
+          <span v-if="wishlist.length > 0" class="item-pill">{{ wishlist.length }} items</span>
+        </div>
+      </div>
 
       <div class="wishlist-layout">
         <div class="wishlist-left">
@@ -11,16 +23,40 @@
               :key="item.variant_id"
               class="wishlist-card"
             >
+            <!-- Image -->
+              <div class="img-container" @click="$router.push(getRoute(item))">
               <img :src="item.image" :alt="item.title" class="wishlist-img" />
+              <div class="img-shine"></div>
+                <div class="img-overlay-btn">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  View
+                </div>
+              </div>
 
+              <!-- Details -->
               <div class="wishlist-info">
-                <h3 class="product-title">{{ item.title }}</h3>
+                <div class="info-top">
+                <h3 class="product-title" @click="$router.push(getRoute(item))">{{ item.title }}</h3>
 
                 <p class="product-meta">
                   Size: {{ item.size || 'M' }}
                   <span class="dot">•</span>
                   Color: {{ item.color || 'Default' }}
                 </p>
+              </div>
+
+
+              <!-- Footer -->
+                <div class="card-footer">
+                  <div class="price-box">
+                    <span class="price-main">₹{{ formatPrice(item.price) }}</span>
+                    <span v-if="item.originalPrice && item.originalPrice > item.price" class="price-old">
+                      ₹{{ formatPrice(item.originalPrice) }}
+                    </span>
+                  </div>
 
                 <div class="wishlist-btns">
                   <button
@@ -29,6 +65,11 @@
                     @click="addToCart(item)"
                   >
                     {{ loadingItem === item.variant_id ? 'Adding...' : 'Add to Cart' }}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                      </svg>
+                      Add to Cart
                   </button>
 
                   <button
@@ -36,27 +77,42 @@
                     :disabled="loadingItem === item.variant_id"
                     @click="removeFromWishlist(item)"
                   >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                  </svg>
                     Remove
                   </button>
                 </div>
               </div>
 
-              <div class="price-box">
+              <!--<div class="price-box">
                 ₹{{ Number(item.price || 0).toLocaleString() }}
-              </div>
+              </div>-->
             </div>
           </div>
+          </div>
 
+            <!-- Empty wishlist -->
           <div v-else class="empty-wishlist">
-            <h3>Your wishlist is empty</h3>
-            <p>Save your favorite products here.</p>
-
+            <div class="empty-heart">
+              <svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="#0f7b6c" stroke-width="1.2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </div>
+            <h3 class="empty-title">Your wishlist is empty</h3>
+            <p class="empty-sub">Save your favorite scrubs &amp; aprons here.</p>
             <button class="continue-btn" @click="$router.push('/')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
               Continue Shopping
             </button>
           </div>
         </div>
       </div>
+
     </div>
   </q-page>
 </template>
@@ -233,6 +289,13 @@ const removeFromWishlist = async (item, showAlert = true) => {
 onMounted(() => {
   loadWishlist()
 })
+
+const getRoute = (item) => {
+  if (item.type === 'men') return `/men-product/${item.id}`
+  if (item.type === 'women') return `/women-product/${item.id}`
+  if (item.type === 'aprons') return `/aprons-product/${item.id}`
+  return '/'
+}
 </script>
 
 <style lang="scss">

@@ -1,47 +1,54 @@
-@use "sass:color";
-
-// ─── Variables ────────────────────────────────────────────────
+// ─── Variables ────────────────────────────────────────────
 $teal:        #009688;
-$teal-light:  #e0f2f1;
+$teal-hover:  #00796b;
+$teal-light:  #e0f7f4;
+$teal-soft:   #f2fbfa;
 $teal-mid:    #4db6ac;
-$text-dark:   #1a1a2e;
-$text-muted:  #777;
-$border:      #e0e0e0;
-$bg-card:     #fafafa;
-$radius-lg:   16px;
+$text-dark:   #1c2b3a;
+$text-body:   #3d4f5c;
+$text-muted:  #8a9baa;
+$border:      #dde5ea;
+$bg-card:     #f7fafb;
+$bg-white:    #ffffff;
+$accent-red:  #e53935;
+$radius-xl:   20px;
+$radius-lg:   14px;
 $radius-md:   10px;
-$radius-sm:   6px;
+$radius-sm:   7px;
+$font-base: sans-serif;
 
-// ─── Wrapper ──────────────────────────────────────────────────
+// ─── Panel Wrapper ────────────────────────────────────────
 .customization-panel {
+  font-family: $font-base;
   border: 1.5px solid $border;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   overflow: hidden;
-  margin: 18px 0;
-  background: white;
-  box-shadow: 0 2px 12px rgba(0, 150, 136, 0.07);
-  transition: box-shadow 0.2s;
+  margin: 20px 0;
+  background: $bg-white;
+  box-shadow: 0 2px 10px rgba(0, 150, 136, 0.07);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 
   &:hover {
-    box-shadow: 0 4px 20px rgba(0, 150, 136, 0.12);
+    box-shadow: 0 6px 22px rgba(0, 150, 136, 0.12);
+    border-color: rgba(0, 150, 136, 0.28);
   }
 }
 
-// ─── Toggle Header ────────────────────────────────────────────
+// ─── Toggle Header ────────────────────────────────────────
 .custom-toggle-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: $teal-light;
+  background: linear-gradient(135deg, #e8f5e9 0%, #e0f7f4 100%);
   cursor: pointer;
   user-select: none;
-  transition: background 0.2s;
-  
+  transition: background 0.22s ease;
 
   &:hover {
-    background: color.adjust($teal-light, $lightness: -4%);
+    background: linear-gradient(135deg, #dcedc8 0%, #b2dfdb 100%);
   }
+
   .toggle-left {
     display: flex;
     align-items: center;
@@ -49,55 +56,103 @@ $radius-sm:   6px;
   }
 
   .custom-icon {
-    font-size: 22px;
+    font-size: 24px;
+    background: $bg-white;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 150, 136, 0.13);
+    flex-shrink: 0;
   }
 
   .toggle-title {
+    font-size: 15px;
     font-weight: 700;
     color: $teal;
-    font-size: 15px;
-    margin: 0;
+    margin: 0 0 2px;
+    
   }
 
   .toggle-sub {
     font-size: 12px;
     color: $text-muted;
     margin: 0;
+    font-weight: 400;
+  }
+
+  .toggle-chevron {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: $bg-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+
+    &.is-open { transform: rotate(180deg); }
   }
 }
 
-// ─── Body ─────────────────────────────────────────────────────
+// ─── Body ─────────────────────────────────────────────────
 .custom-body {
-  padding: 18px;
-  border-top: 1px solid $border;
+  padding: 20px 18px 16px;
+  border-top: 1.5px solid $border;
+  background: $bg-white;
 }
 
-// ─── Section ──────────────────────────────────────────────────
 .custom-section {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
+// ─── Section / Field Labels ───────────────────────────────
 .custom-label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: $text-dark;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
+  //text-transform: uppercase;
+ 
 
-  .required-star { color: #e53935; }
-  .optional      { color: $text-muted; font-weight: 400; }
+  .required-star {
+    color: $accent-red;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .optional {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: $text-muted;
+    text-transform: none;
+    background: #f0f3f5;
+    padding: 1px 7px;
+    border-radius: 20px;
+    
+  }
 
   .char-count {
     margin-left: auto;
     font-size: 11px;
-    font-weight: 400;
+    font-weight: 500;
     color: $text-muted;
+    text-transform: none;
+    background: $bg-card;
+    border: 1px solid $border;
+    padding: 1px 7px;
+    border-radius: 20px;
   }
 }
 
-// ─── Type Chips ───────────────────────────────────────────────
+// ─── Customization Type Chips ─────────────────────────────
 .custom-type-grid {
   display: flex;
   flex-wrap: wrap;
@@ -107,91 +162,215 @@ $radius-sm:   6px;
 .type-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 4px 10px;
   border: 1.5px solid $border;
-  border-radius: 30px;
-  background: white;
+  border-radius: 40px;
+  background: $bg-white;
   cursor: pointer;
+  font-family: $font-base;
   font-size: 13px;
+  font-weight: 500;
   color: $text-dark;
-  transition: all 0.18s;
+  transition: all 0.2s ease;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
   &:hover {
-    border-color: $teal-mid;
-    background: $teal-light;
+    border-color: $teal;
+    //background: $teal-soft;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 150, 136, 0.11);
   }
 
   &--active {
     border-color: $teal;
     background: $teal;
-    color: white;
+    color: $bg-white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 150, 136, 0.25);
 
-    .chip-price { color: rgba(255,255,255,0.85); }
+    .chip-icon  
+    { 
+      filter: brightness(1.3); 
+    }
+    .chip-label 
+    { 
+      color: #fff; 
+    }
+    .chip-price 
+    { 
+      color: #fff; 
+      background: rgba(255, 255, 255, 0.2); 
+    }
   }
 
-  .chip-icon  { font-size: 15px; }
-  .chip-label { font-weight: 500; }
-  .chip-price { font-size: 11px; color: $teal; margin-left: 2px; }
-}
-
-// ─── Position Chips ───────────────────────────────────────────
-.position-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pos-chip {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 13px;
-  border: 1.5px solid $border;
-  border-radius: $radius-sm;
-  background: white;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.18s;
-
-  &:hover {
-    border-color: $teal-mid;
+  .chip-icon {
+    font-size: 16px;
+    flex-shrink: 0;
   }
 
-  &--active {
-    border-color: $teal;
-    background: $teal-light;
-    color: $teal;
+  .chip-label {
+    font-size: 13px;
     font-weight: 600;
+    color: $text-dark;
   }
 
-  .pos-icon { font-size: 12px; }
+  .chip-price {
+    font-size: 11px;
+    font-weight: 700;
+    color: $text-dark;
+    background: rgba(0, 0, 0, 0.07);
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-left: 2px;
+  }
 }
 
-/*input*/
-.custom-input {
-  width: 100%;
+// ─── Embroidery / Text Block ──────────────────────────────
+.embroidery-block {
+  background: $bg-card;
+  border: 1.5px solid rgba(0, 150, 136, 0.15);
+  border-radius: $radius-lg;
+  padding: 18px 15px 15px;
+  position: relative;
+  margin-top: 4px;
+
+  &::before {
+    position: absolute;
+    top: -10px;
+    left: 14px;
+    background: $teal;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-family: $font-base;
+  }
+}
+
+.text-field-wrap {
+  margin-bottom: 4px;
+
+  :deep(.q-field--outlined .q-field__control) {
+    border-radius: $radius-sm;
+    border-color: $border;
+    &:hover { border-color: $teal-mid; }
+  }
+
+  :deep(.q-field--focused .q-field__control) {
+    border-color: $teal ;
+    box-shadow: 0 0 0 3px rgba(0, 150, 136, 0.10);
+  }
+
+  :deep(.q-field__native) {
+    font-family: $font-base;
+    font-size: 13.5px;
+    color: $text-dark;
+  }
 }
 
 .input-hint {
   font-size: 11px;
   color: $text-muted;
   margin-top: 4px;
+  padding-left: 2px;
 }
 
-/* ─── Upload Zone ──────────────────────────────────────────────*/
-.upload-zone {
-  border: 2px dashed $teal-mid;
-  border-radius: $radius-md;
-  padding: 20px;
-  background: $bg-card;
+// ─── Font Grid ────────────────────────────────────────────
+.field-group {
+  display: flex;
+  flex-direction: column;
+
+  &.mt-14 
+  { 
+    margin-top: 14px; 
+  }
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: $text-dark;
+  margin-bottom: 8px;
+  //text-transform: uppercase;
+
+}
+
+.font-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.font-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1.5px solid $border;
+  border-radius: $radius-sm;
+  background: $bg-white;
   cursor: pointer;
-  text-align: center;
-  transition: background 0.18s;
+  font-size: 13px;
+  font-weight: 500;
+  color: black;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
   &:hover {
-    background: $teal-light;
+    border-color: $teal;
+    //background: $teal-soft;
+  }
+
+  &--active {
+    border-color: $teal;
+    background: $teal;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(0, 150, 136, 0.20);
+
+    .font-preview 
+    { color: rgba(255, 255, 255, 0.75); }
+  }
+
+  .font-preview {
+    font-size: 14px;
+    color: $text-muted;
+  }
+}
+
+// ─── Logo Upload ──────────────────────────────────────────
+.custom-logo-upload
+ { 
+  margin-top: 2px; 
+}
+
+.upload-sub-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: $text-dark;
+  margin-bottom: 10px;
+  //text-transform: uppercase;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.upload-zone {
+  border: 2px dashed rgba(0, 150, 136, 0.4);
+  border-radius: $radius-md;
+  padding: 20px 16px;
+  background: $teal-soft;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 150, 136, 0.07);
+    border-color: $teal;
   }
 
   .upload-placeholder {
@@ -199,13 +378,25 @@ $radius-sm:   6px;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+
+    .upload-icon-wrap {
+      width: 50px;
+      height: 50px;
+      background: $bg-white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 150, 136, 0.12);
+      margin-bottom: 4px;
+    }
   }
 
   .upload-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: $text-dark;
-    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: $teal;
+    margin: 4px 0 0;
   }
 
   .upload-hint {
@@ -225,94 +416,229 @@ $radius-sm:   6px;
       height: 60px;
       object-fit: contain;
       border-radius: $radius-sm;
-      border: 1px solid $border;
+      border: 1.5px solid $border;
+      background: $bg-white;
+      padding: 4px;
+      flex-shrink: 0;
     }
 
     .logo-name {
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
+      color: $text-dark;
       margin: 0 0 6px;
+      word-break: break-all;
     }
 
     .remove-logo {
       font-size: 12px;
-      color: #e53935;
+      font-weight: 600;
+      color: $accent-red;
       border: none;
       background: none;
       cursor: pointer;
       padding: 0;
-
+      font-family: $font-base;
       &:hover { text-decoration: underline; }
     }
   }
 }
 
-// ─── Price Summary 
-.price-summary {
-  background: $teal-light;
-  border-radius: $radius-md;
-  padding: 12px 16px;
-  margin-bottom: 14px;
-
-  .price-row-inner {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    font-weight: 600;
-    color: $text-dark;
-  }
-
-  .price-val { color: $teal; }
-
-  .price-note {
+.upload-requirements {
+  margin-top: 10px;
+  p {
     font-size: 11px;
     color: $text-muted;
-    margin: 6px 0 0;
+    margin: 3px 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    &::before { content: '•'; color: $teal-mid; font-weight: 700; }
   }
 }
 
-// ─── Approval Notice ──────────────────────────────────────────
+.mini-position-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mini-position-chip {
+  border: 1px solid #d7e3e3;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s ease;
+  color: #345;
+}
+
+.mini-position-chip i {
+  font-size: 14px;
+}
+
+.mini-position-chip:hover {
+  border-color: #009688;
+  transform: translateY(-1px);
+}
+
+.mini-position-chip--active {
+  background: #009688;
+  color: white;
+  border-color: #009688;
+}
+
+// ─── Special Instructions ─────────────────────────────────
+:deep(.notes-input .q-field--outlined .q-field__control) {
+  border-radius: $radius-sm;
+  font-family: $font-base;
+}
+
+// ─── Bottom Row ───────────────────────────────────────────
+.bottom-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.reset-btn,
+.apply-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: $radius-sm;
+  font-size: 14px;
+  font-family: $font-base;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  
+}
+
+.reset-btn {
+  background: $bg-white;
+  border: 1.5px solid $border;
+  color: $text-muted;
+
+  &:hover {
+    border-color: $accent-red;
+    color: $accent-red;
+    background: rgba(229, 57, 53, 0.04);
+  }
+}
+
+.apply-btn {
+  background: linear-gradient(135deg, $teal 0%, $teal-hover 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 150, 136, 0.28);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 150, 136, 0.34);
+  }
+
+  &:active:not(:disabled) { transform: translateY(0); }
+
+  &:disabled {
+    background: linear-gradient(135deg, #ccc 0%, #bbb 100%);
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// ─── Approval Notice ──────────────────────────────────────
 .approval-notice {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 9px;
   background: #fff8e1;
-  border-radius: $radius-sm;
+  border-left: 3px solid #ffb300;
+  border-radius: 0 $radius-sm $radius-sm 0;
   padding: 10px 12px;
+  margin-top: 12px;
 
   p {
-    font-size: 12px;
-    color: #6d4c00;
+    font-size: 11.5px;
+    color: #5d4200;
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-weight: 500;
   }
 }
 
-//Transitions 
+// ─── Transitions ──────────────────────────────────────────
 .slide-down-enter-active,
 .slide-down-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 .slide-down-enter-from,
-.slide-down-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
+.slide-down-leave-to   { max-height: 0; opacity: 0; }
 .slide-down-enter-to,
-.slide-down-leave-from {
-  max-height: 800px;
-  opacity: 1;
+.slide-down-leave-from { max-height: 1200px; opacity: 1; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.22s ease; }
+.fade-enter-from,   .fade-leave-to     { opacity: 0; }
+
+// ─── Responsive ───────────────────────────────────────────
+@media (max-width: 600px) {
+  .custom-body       
+  { 
+    padding: 16px 14px 12px; 
+  }
+  .custom-type-grid  
+  { 
+    gap: 8px; 
+  }
+  .type-chip         
+  { 
+    padding: 4px 10px; 
+    font-size: 12px; 
+  }
+  .chip-label        
+  { 
+    font-size: 12px; 
+  }
+  .chip-price        
+  { 
+    font-size: 10.5px; 
+  }
+  .font-grid         
+  { 
+    gap: 6px; 
+  }
+  .font-chip         
+  { 
+    padding: 7px 11px; 
+    font-size: 12px; 
+  }
+  .embroidery-block  
+  { 
+    padding: 16px 12px 12px; 
+  }
+  .reset-btn,
+  .apply-btn         
+  { 
+    font-size: 13px;
+     height: 42px; 
+    }
 }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
-.fade-enter-from, .fade-leave-to       { opacity: 0; }
-
-// ─── Responsive ───────────────────────────────────────────────
-@media (max-width: 600px) {
-  .custom-type-grid  { gap: 8px; }
-  .type-chip         { padding: 7px 11px; font-size: 12px; }
-  .position-grid     { gap: 6px; }
-  .pos-chip          { padding: 6px 10px; font-size: 12px; }
-  .custom-body       { padding: 14px; }
+:deep(.notes-input textarea) {
+  resize: vertical;
+  min-height: 60px;
+  max-height: 120px;
+  overflow-y: auto;
 }

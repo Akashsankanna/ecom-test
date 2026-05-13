@@ -1,7 +1,8 @@
 <template>
-  <div class="card">
-    <h3>Login</h3>
-    <p class="sub">Welcome back! Login to continue shopping</p>
+  <div class="login-page">
+ <div class="login-card">
+      <h3 class="login-title">Login</h3>
+      <p class="login-sub">Welcome back! Login to continue shopping</p>
 
     <!-- ✅ Session expired notice — shown when auto-logged out -->
     <div v-if="sessionExpired" class="session-expired-box">
@@ -17,22 +18,39 @@
     </div>
 
     <template v-else>
-      <input
-        v-model="identifier"
-        type="text"
-        placeholder="Phone Number or Email"
-        autocomplete="username"
-      />
-      <input
-        v-model="password"
-        type="password"
-        placeholder="Password"
-        autocomplete="current-password"
-      />
+<input
+  class="login-input"
+  v-model="identifier"
+  type="text"
+  placeholder="Phone Number or Email"
+  autocomplete="username"
+  required
+
+  @input="identifier = /^[0-9]*$/.test(identifier)
+    ? identifier.replace(/[^0-9]/g, '').slice(0,10)
+    : identifier.replace(/[^a-zA-Z0-9@.]/g, '').slice(0,30)"
+
+  pattern="(^[0-9]{10}$)|(^[a-zA-Z0-9.]+@gmail\.com$)"
+
+  title="Enter valid 10-digit phone number or proper @gmail.com email"
+/>
+<input
+  class="login-input"
+  v-model="password"
+  type="password"
+  placeholder="Password"
+  autocomplete="current-password"
+
+  required
+  minlength="8"
+  maxlength="20"
+
+  title="Password must be between 8 to 20 characters"
+/>
 
       <p class="error" v-if="error">{{ error }}</p>
 
-      <button class="btn" @click="login" :disabled="loading">
+      <button class="login-btn" @click="login" :disabled="loading">
         {{ loading ? 'LOGGING IN...' : 'LOGIN' }}
       </button>
 
@@ -42,15 +60,16 @@
 
       <div class="divider">or</div>
 
-      <button class="btn btn-google" @click="loginWithGoogle">
+      <button class="login-btn btn-google" @click="loginWithGoogle">
         Continue with Google
       </button>
 
-      <p class="switch">
+      <p class="login-switch">
         Don't have an account?
         <span @click="$router.push('/signup')">Sign Up</span>
       </p>
     </template>
+  </div>
   </div>
 </template>
 

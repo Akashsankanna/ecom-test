@@ -23,8 +23,9 @@
 
       <!------------right--------------->
       <div class="right">
-        <p class="tag">Premium Women Collection</p>
-        <h1>{{ product.title }}</h1>
+      <p class="tag">{{ productTag }}</p>
+        <!---<p class="tag">Premium Women Collection</p>--->
+       <h1>{{ product.title || product.name || 'Product' }}</h1>
 
         <div
   class="rating-row"
@@ -37,43 +38,44 @@
 
         <div class="price-row">
           <h2>
-            ₹ {{ Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}
+            ₹ {{ Number(currentPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}
           </h2>
 
-          <span v-if="product.oldPrice" class="old-price">
-            ₹ {{ Number(product.oldPrice).toLocaleString('en-IN') }}
+          <span v-if="oldPrice" class="old-price">
+            ₹ {{ Number(oldPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }}
           </span>
 
-          <span v-if="product.oldPrice" class="discount">
+          <span v-if="oldPrice && discountPercent > 0" class="discount">
             {{ discountPercent }}% OFF
           </span>
         </div>
 
-           <!-- COLOUR -->
-            <div class="variant-section">
-                <p class="variant-label">Colour: <strong>{{ selectedColor }}</strong></p>
-                  <div class="color-swatches">
-                  <button
-                    v-for="c in colorOptions" :key="c.name"
-                    class="color-dot"
-                    :class="{ active: selectedColor === c.name }"
-                    :style="{ background: c.hex }"
-                    :title="c.name"
-                    @click="changeColor(c.name)"
-                  > </button>
-                  </div>
-              </div>
+                  <!-- COLOUR -->
+        <div class="variant-section" v-if="colorOptions.length">
+          <p class="variant-label">Colour: <strong>{{ selectedColor || 'Select Colour' }}</strong></p>
+          <div class="color-swatches">
+            <button
+              v-for="c in colorOptions"
+              :key="c.name"
+              class="color-dot"
+              :class="{ active: selectedColor === c.name }"
+              :style="{ background: c.hex || c.color_code || '#ccc' }"
+              :title="c.name"
+              @click="changeColor(c.name)"
+            ></button>
+          </div>
+        </div>
 
-                  <!-- Size -->
-                  <div class="variant-section">
-                    <div class="section-head">
-                        <p class="variant-label">
-                          Size: <strong>{{ selectedSize }}</strong>
-                        </p>
-                        <button class="size-chart-link" @click="sizeChartDialog = true">
-                          Size Chart
-                        </button>
-                      </div>
+        <!-- SIZE SECTION -->
+        <div class="variant-section" v-if="sizes.length">
+          <div class="section-head">
+            <p class="variant-label">
+              Size: <strong>{{ selectedSize || 'Select Size' }}</strong>
+            </p>
+            <button class="size-chart-link" @click="sizeChartDialog = true">
+              Size Chart
+            </button>
+          </div>
 
                     <div class="size-options">
                       <button
@@ -92,7 +94,6 @@
                   </div>
 
       <ProductCustomization
-        :product-id="product?.id"
         @customization-updated="onCustomizationUpdated"
       />
 
@@ -126,7 +127,7 @@
           ref="flyingImgRef"
         />
 
-                <!-- Delivery features (Knya style) -->
+                <!-- Delivery features (Knya style)
                       <div class="delivery-cols">
 
                         <div class="delivery-col">
@@ -143,7 +144,18 @@
                               <i class="bi bi-truck"></i>
                                 <p class="delivery-title">Cash on Delivery<br />Available</p>
                             </div>
-                      </div>
+                      </div>--->
+        <!-- Delivery features -->
+        <div class="delivery-cols">
+          <div
+            class="delivery-col"
+            v-for="(item, index) in deliveryFeatures"
+            :key="index"
+          >
+            <i :class="item.icon"></i>
+            <p class="delivery-title" v-html="item.title"></p>
+          </div>
+        </div>
 
             <!--pin code section---->
               <div class="section delivery-details">
@@ -659,6 +671,24 @@ const discountPercent = computed(() => {
   const p = product.value
   if (!p?.oldPrice || !p?.price) return 0
   return Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
+})
+
+//me added 
+const productTag = computed(() => {
+  return product.value?.tag ||
+    product.value?.category_name ||
+    product.value?.collection_name ||
+    'Premium Collection'
+})
+
+const deliveryFeatures = computed(() => {
+  return product.value?.delivery_features?.length
+    ? product.value.delivery_features
+    : [
+        { icon: 'bi bi-truck-flatbed', title: '1–3 Day<br />Express Shipping' },
+        { icon: 'bi bi-box-seam', title: 'Easy Exchange<br />& Returns' },
+        { icon: 'bi bi-truck', title: 'Cash on Delivery<br />Available' }
+      ]
 })
 
 const onCustomizationUpdated = (payload) => {

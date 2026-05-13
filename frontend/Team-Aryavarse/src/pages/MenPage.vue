@@ -2,6 +2,7 @@
   <div class="men-page">
     <div class="main-container">
 
+      <!-- Filters -->
       <FilterSidebar
         :filterCategories="filterCategories"
         :fabrics="fabrics"
@@ -17,6 +18,7 @@
         </template>
       </FilterSidebar>
 
+      <!-- Products -->
       <section class="products">
         <div class="top-bar">
           <span>{{ filteredProducts.length }} items</span>
@@ -26,65 +28,28 @@
           </div>
         </div>
 
-        <div class="grid">
-          <div
-            v-for="product in filteredProducts"
-            :key="product.id"
-            class="card"
-          >
-            <div
-              class="img-wrapper"
-              @mouseenter="hoveredProduct = product.id"
-              @mouseleave="hoveredProduct = null"
-            >
-              <img
-                :src="hoveredProduct === product.id ? product.images?.[1] || product.image : product.image"
-                class="product-img"
-                @click="goToMenProduct(product)"
-              />
+        <!-- ✅ ONLY THIS -->
+        <ProductPagination :products="filteredProducts">
+          <template #default="{ paginatedProducts }">
 
-              <span v-if="product.isBestSeller" class="badge">Bestseller</span>
-
-              <!-- ❤️ FIXED -->
-              <div class="card-icons" @click.stop="handleWishlist(product)">
-                <q-icon
-                  :name="isProductInWishlist(product) ? 'favorite' : 'favorite_border'"
-                  size="22px"
-                  :class="{ 'active-heart': isProductInWishlist(product) }"
-                />
-              </div>
-
-              <div class="hover-actions" v-if="hoveredProduct === product.id">
-                <button class="quick-btn" @click="goToMenProduct(product)">
-                  Quick View
-                </button>
-              </div>
+            <div class="grid">
+<ProductCard
+  v-for="product in paginatedProducts"
+  :key="product.id"
+  :product="product"
+  :wishlistIds="wishlistIds"
+  @wishlist-updated="updateWishlist"
+  @go-to-product="goToMenProduct"
+/>
             </div>
 
-            <div class="card-content">
-              <div class="fabric-wrap">
-                <span class="fabric-link">{{ product.fabric }}</span>
-                <div class="fabric-tooltip">
-                  {{ getFabricDescription(product.fabric) }}
-                </div>
-              </div>
+          </template>
+        </ProductPagination>
 
-              <p class="title">{{ product.title }}</p>
-
-              <div class="rating-row">
-                <span class="stars">★★★★★</span>
-                <span class="rating-text">{{ product.rating || 4.8 }}</span>
-              </div>
-
-              <div class="price-row">
-                <p class="price">₹ {{ Number(product.price).toFixed(2) }}</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
       </section>
     </div>
+
+    <div class="mobile-bottom-spacer" />
   </div>
 </template>
 <script setup>
@@ -93,12 +58,14 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from 'boot/axios'
 import SortDropdown from 'src/components/SortDropdown.vue'
 import FilterSidebar from 'src/components/FilterSidebar.vue'
+import ProductCard from 'src/components/ProductCard.vue'
+import ProductPagination from 'src/components/ProductPagination.vue'
 
 const router = useRouter()
 
 const selectedSort = ref('')
-const hoveredProduct = ref(null)
-const flyingHeartId = ref(null)
+//const hoveredProduct = ref(null)
+//const flyingHeartId = ref(null)
 const loading = ref(false)
 
 const wishlistIds = ref([])
@@ -423,10 +390,30 @@ const loadMenProducts = async () => {
   }
 }
 
-const isProductInWishlist = (product) => {
-  return wishlistIds.value.includes(
-    Number(product.variant_id)
-  )
+const updateWishlist = ({
+  type,
+  variantId
+}) => {
+
+  if (type === 'add') {
+
+    if (
+      !wishlistIds.value.includes(
+        variantId
+      )
+    ) {
+      wishlistIds.value.push(
+        variantId
+      )
+    }
+
+  } else {
+
+    wishlistIds.value =
+      wishlistIds.value.filter(
+        (id) => id !== variantId
+      )
+  }
 }
 
 const loadWishlistIds = async () => {
@@ -464,81 +451,6 @@ const loadWishlistIds = async () => {
   }
 }
 
-const handleWishlist = async (product) => {
-  try {
-    const userId = getUserId()
-
-    if (!userId) {
-      router.push('/login')
-      return
-    }
-
-    const variantId = Number(
-      product.variant_id
-    )
-
-    if (
-      !variantId ||
-      Number.isNaN(variantId)
-    ) {
-      console.error(
-        'VARIANT ID MISSING:',
-        product
-      )
-      return
-    }
-
-    if (isProductInWishlist(product)) {
-      await api.delete('/wishlist/remove', {
-        params: {
-          user_id: userId
-        },
-
-        data: {
-          variant_id: variantId
-        }
-      })
-
-      wishlistIds.value =
-        wishlistIds.value.filter(
-          (id) => id !== variantId
-        )
-    } else {
-      await api.post(
-        '/wishlist/add',
-        {
-          variant_id: variantId
-        },
-        {
-          params: {
-            user_id: userId
-          }
-        }
-      )
-
-      if (
-        !wishlistIds.value.includes(
-          variantId
-        )
-      ) {
-        wishlistIds.value.push(
-          variantId
-        )
-      }
-    }
-
-    flyingHeartId.value = product.id
-
-    setTimeout(() => {
-      flyingHeartId.value = null
-    }, 900)
-  } catch (err) {
-    console.error(
-      'WISHLIST ERROR:',
-      err.response?.data || err
-    )
-  }
-}
 
 const goToMenProduct = (product) => {
   const productId =
@@ -549,21 +461,7 @@ const goToMenProduct = (product) => {
   router.push(`/men-product/${productId}`)
 }
 
-const getFabricDescription = (fabric) => {
-  if (fabric === 'Classic') {
-    return 'Classic fit • Soft feel • Everyday comfort'
-  }
 
-  if (fabric === 'Ecoflex') {
-    return 'Ecoflex stretch • Breathable • Premium movement'
-  }
-
-  if (fabric === 'Ecoflex Lite') {
-    return 'Lightweight • Flexible • Comfortable'
-  }
-
-  return 'Premium scrub fabric'
-}
 
 const filteredProducts = computed(() => {
   let products = [...allMenProducts.value]

@@ -1,7 +1,4 @@
-/* ===================================================
-   DESKTOP SIDEBAR — sticky
-=================================================== */
-
+/* DESKTOP SIDEBAR — sticky*/
 .filter-wrapper {
   height: fit-content;
 }
@@ -299,49 +296,43 @@
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
   }
 
-  /* 🔥 IMPORTANT FIX */
+  /*  IMPORTANT FIX */
   :deep(.sort-dropdown div) {
-    color: #111 !important;
-    background: white !important;
+    color: #111 ;
+    background: white ;
     padding: 12px 14px;
   }
 
   :deep(.sort-dropdown div:hover) {
-    background: #f3f4f6 !important;
+    background: #f3f4f6 ;
   }
 
 
-/* ===================================================
-   RESPONSIVE — switch sidebar → bottom bar
-=================================================== */
-@media (max-width: 1000px) {
+//responsive
+@media (max-width: 768px) {       /*  CHANGED: 1000px → 768px */
   .desktop-filters {
-    display: none !important;
+    display: none ;
   }
 
-.mobile-filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-
-  z-index: 800;
-
-  background: #14325b;
-  height: 54px;
-  padding: 0 8px;
-
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-}
+  .mobile-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 800;
+    background: #14325b;
+    height: 54px;
+    padding: 0 8px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  }
 }
 
-@media (min-width: 1001px) {
+@media (min-width: 769px) {       /*  CHANGED: 1001px → 769px */
   .filter-overlay,
   .filter-drawer {
-    display: none !important;
+    display: none ;
   }
 }

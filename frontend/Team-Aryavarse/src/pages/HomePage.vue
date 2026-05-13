@@ -1,74 +1,75 @@
 <template>
   <div class="home-page">
     <div class="hero">
+
       <div class="hero-slider">
-        <div
-          class="hero-track"
+        <div class="hero-track"
           :style="{
             transform: `translateX(-${currentSlide * 100}%)`,
             transition: isTransitioning ? 'transform 0.6s ease-in-out' : 'none'
-          }"
-        >
-          <div class="hero-slide" v-for="(slide, i) in banners" :key="i">
+          }">
+
+          <!-- ORIGINAL SLIDES -->
+          <div class="hero-slide"
+            v-for="(slide, i) in banners"
+            :key="i"
+          >
+          <div class="hero-inner">
             <div class="hero-text">
               <h1>{{ slide.title }}</h1>
-
               <div class="features">
                 <span v-for="f in slide.features" :key="f">{{ f }}</span>
               </div>
-
-              <button class="shop-btn" @click="scrollToProducts">
-                Shop Now
-              </button>
+              <button class="shop-btn" @click="scrollToProducts">Shop Now</button>
             </div>
-
             <div class="hero-image-wrapper">
               <img :src="slide.image" class="hero-img" />
             </div>
           </div>
+          </div>
 
+          <!-- CLONE OF FIRST SLIDE — infinite loop -->
+          <!-- FIX: added hero-inner wrapper here too so clone matches original slides -->
           <div class="hero-slide">
-            <div class="hero-text">
-              <h1>{{ banners[0].title }}</h1>
-              <div class="features">
-                <span v-for="f in banners[0].features" :key="f">{{ f }}</span>
+            <div class="hero-inner">
+              <div class="hero-text">
+                <h1>{{ banners[0].title }}</h1>
+                <div class="features">
+                  <span v-for="f in banners[0].features" :key="f">{{ f }}</span>
+                </div>
+                <button class="shop-btn" @click="scrollToProducts">Shop Now</button>
               </div>
-              <button class="shop-btn" @click="scrollToProducts">Shop Now</button>
-            </div>
-
-            <div class="hero-image-wrapper">
-              <img :src="banners[0].image" class="hero-img" />
+              <div class="hero-image-wrapper">
+                <img :src="banners[0].image" class="hero-img" />
+              </div>
             </div>
           </div>
+
         </div>
+
+        <!-- CHANGE: Fade overlay div — sits on top of slider, animates opacity on slide change -->
+        <div class="hero-fade-overlay" :class="{ 'is-fading': isFading }"></div>
+
       </div>
+
     </div>
 
+    <!-- PROMO STRIP -->
     <div class="trusted-clients-section">
       <div class="section-header">
         <h3 class="clients-title">Our Trusted Clients</h3>
         <div class="title-underline"></div>
       </div>
-
       <div class="promo-strip">
         <div class="promo-track">
           <div class="promo-group">
-            <div
-              class="promo-item"
-              v-for="(item, index) in promoItems"
-              :key="'first-' + index"
-            >
+            <div class="promo-item" v-for="(item, index) in promoItems" :key="'first-' + index">
               <img :src="sliderImg(item.logo)" :alt="item.text" class="promo-logo" />
               <span class="promo-separator"></span>
             </div>
           </div>
-
           <div class="promo-group">
-            <div
-              class="promo-item"
-              v-for="(item, index) in promoItems"
-              :key="'second-' + index"
-            >
+            <div class="promo-item" v-for="(item, index) in promoItems" :key="'second-' + index">
               <img :src="sliderImg(item.logo)" :alt="item.text" class="promo-logo" />
               <span class="promo-separator"></span>
             </div>
@@ -77,12 +78,16 @@
       </div>
     </div>
 
+    <!-- MAIN: FILTERS + PRODUCTS -->
     <div class="main-container">
-      <FilterSidebar
+
+      <!-- Filters sidebar --><!----if you want to add anything then you can add herer only--->
+      <!--<FilterSidebar
         :filterCategories="filterCategories"
         :fabrics="fabrics"
         :sleeves="sleeves"
-        :colors="colors"
+        :colors="colors" 
+        
         v-model:selectedCategories="selectedCategories"
         v-model:selectedFabrics="selectedFabrics"
         v-model:selectedSleeves="selectedSleeves"
@@ -92,104 +97,28 @@
         <template #sort-btn>
           <SortDropdown v-model="selectedSort" />
         </template>
-      </FilterSidebar>
+      </FilterSidebar>-->
 
+      <!-- Products section -->
       <section class="products" ref="productsSection">
         <div class="top-bar">
           <span>{{ filteredProducts.length }} items</span>
-
           <div class="desktop-sort-only">
             <SortDropdown v-model="selectedSort" />
           </div>
         </div>
 
-        <div v-if="showSort" class="sort-dropdown">
-          <div @click="setSort('popular')">MOST POPULAR</div>
-          <div @click="setSort('bestseller')">BEST SELLING</div>
-          <div @click="setSort('low')">LOW PRICE</div>
-          <div @click="setSort('high')">HIGH PRICE</div>
-        </div>
-
+        <!-- GRID — ProductCard component -->
         <div class="grid">
-          <div
+          <ProductCard
             v-for="product in filteredProducts"
             :key="product.id + '-' + product.type"
-            class="card"
-          >
-            <div
-              class="img-wrapper"
-              @mouseenter="hoveredProduct = product.id + '-' + product.type"
-              @mouseleave="hoveredProduct = null"
-            >
-              <img
-                :src="hoveredProduct === product.id + '-' + product.type
-                  ? product.images?.[1] || product.images?.[0]
-                  : product.images?.[0]"
-                class="product-img"
-                @click="goToProduct(product)"
-                @error="handleImageError"
-              />
-
-              <span v-if="product.isBestSeller" class="badge">Bestseller</span>
-
-              <div class="card-icons" @click.stop="handleWishlist(product)">
-                <q-icon
-                  :name="isInWishlist(product.id) ? 'favorite' : 'favorite_border'"
-                  size="22px"
-                  :class="{ 'active-heart': isInWishlist(product.id) }"
-                />
-                <span class="fly-heart h1" :class="{ show: flyingHeartId === product.id + '-' + product.type }">❤</span>
-                <span class="fly-heart h2" :class="{ show: flyingHeartId === product.id + '-' + product.type }">❤</span>
-                <span class="fly-heart h3" :class="{ show: flyingHeartId === product.id + '-' + product.type }">❤</span>
-                <span class="fly-heart h4" :class="{ show: flyingHeartId === product.id + '-' + product.type }">❤</span>
-                <span class="fly-heart h5" :class="{ show: flyingHeartId === product.id + '-' + product.type }">❤</span>
-              </div>
-
-              <div
-                class="hover-actions"
-                v-if="hoveredProduct === product.id + '-' + product.type"
-              >
-                <button class="quick-btn" @click="goToProduct(product)">
-                  Quick View
-                </button>
-              </div>
-            </div>
-
-            <div class="card-content">
-              <div class="fabric-wrap">
-                <span class="fabric-link">{{ product.fabric }}</span>
-                <div class="fabric-tooltip">
-                  {{ getFabricDescription(product.fabric) }}
-                </div>
-              </div>
-
-              <p class="title">{{ product.title }}</p>
-
-              <div class="rating-row">
-                <span class="stars">★★★★★</span>
-                <span class="rating-text">{{ product.rating || 4.8 }}</span>
-              </div>
-
-              <div class="price-row">
-                <p class="price">₹ {{ Number(product.price).toFixed(2) }}</p>
-              </div>
-            </div>
-          </div>
+            :product="product"
+            @go-to-product="goToProduct"
+          />
         </div>
       </section>
 
-      <transition name="sort-sheet">
-        <div v-if="showSortSheet" class="sort-sheet">
-          <div class="sheet-overlay" @click="showSortSheet = false"></div>
-
-          <div class="sheet-content">
-            <h3>Sort By</h3>
-            <div @click="setSort('bestseller')">Best Selling</div>
-            <div @click="setSort('low')">Low Price</div>
-            <div @click="setSort('high')">High Price</div>
-          </div>
-        </div>
-      </transition>
     </div>
   </div>
 </template>
@@ -200,7 +129,8 @@ import { api } from 'boot/axios'
 
 import { bannerImg, sliderImg } from 'src/data/imageHelper'
 import SortDropdown from 'src/components/SortDropdown.vue'
-import FilterSidebar from 'src/components/FilterSidebar.vue'
+import ProductCard from 'src/components/ProductCard.vue'
+//import FilterSidebar from 'src/components/FilterSidebar.vue'
 
 const router = useRouter()
 

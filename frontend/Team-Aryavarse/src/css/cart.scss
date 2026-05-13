@@ -53,15 +53,26 @@
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #e9eef3;
   border-radius: 18px;
+  padding: 16px 18px;
+
   display: grid;
-  grid-template-columns: 120px 1fr auto auto;
-  padding: 20px 24px;
-  gap: 20px;
-  align-items: center;
-  margin-bottom: 14px;
+  grid-template-columns: 160px 1fr auto;
+  gap: 24px;
+
+  width: 80%;          // card width kami
+  max-width: 800px;    // jast motha honar nahi
+  margin: 0 auto 14px; // center la yeil
+
   position: relative;
+  overflow: hidden;
   box-shadow: 0 10px 28px rgba(15, 47, 87, 0.05);
   transition: 0.25s ease;
+  animation: slideInUp 0.4s ease both;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(15, 47, 87, 0.08);
+  }
 }
 
 .cart-card:hover {
@@ -69,12 +80,57 @@
   box-shadow: 0 16px 32px rgba(15, 47, 87, 0.08);
 }
 
+/*img*/
+
+.cart-img-wrap {
+  position: relative;
+  overflow: hidden;
+  background: #f3f6f8;
+  border-radius: 12px;
+  cursor: pointer;
+    width: 100%;
+  height: 230px;
+
+}
+
 .cart-img {
-  width: 110px;
-  height: 110px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  background: transparent;
+  object-position: center center;
   display: block;
+  transition: transform 0.36s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.cart-card:hover .cart-img {
+  transform: scale(1.05);
+}
+
+/* FLASH EFFECT */
+
+.img-shine {
+  position: absolute;
+  top: 0;
+  left: -75%;
+
+  width: 40%;
+  height: 100%;
+
+  background: linear-gradient(
+    110deg,
+    transparent 10%,
+    rgba(255, 255, 255, 0.7) 50%,
+    transparent 90%
+  );
+
+  transform: skewX(-16deg);
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cart-card:hover .img-shine {
+  animation: flashSweep 0.8s ease;
 }
 
 .product-title {
@@ -139,14 +195,14 @@
 .delete-btn {
   border: none;
   background: transparent;
-  color: #98a2b3;
+  color: #e53935;
   cursor: pointer;
   align-self: start;
   transition: 0.2s;
 }
 
 .delete-btn:hover {
-  color: #ef4444;
+  //color: #ef4444;
   transform: scale(1.06);
 }
 
