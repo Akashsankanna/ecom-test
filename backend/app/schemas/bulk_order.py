@@ -1,52 +1,27 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
-from decimal import Decimal
-from datetime import datetime, date
+from datetime import date
 from enum import Enum
 
 
 # =====================================================
-# ENUMS
+# BULK ORDER STATUS ENUM
 # =====================================================
 
-class DiscountType(str, Enum):
-    PERCENTAGE = "PERCENTAGE"
-    FIXED = "FIXED"
-
-
-class TransactionStatus(str, Enum):
-    PENDING = "PENDING"
-    SUCCESS = "SUCCESS"
-    FAILED = "FAILED"
-    REFUNDED = "REFUNDED"
-
-
-class BulkRequestStatus(str, Enum):
-    PENDING = "PENDING"
-    QUOTED = "QUOTED"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    CONVERTED = "CONVERTED"
-
-
-class BulkOrderStatus(str, Enum):
-    PLACED = "PLACED"
-    CONFIRMED = "CONFIRMED"
-    PROCESSING = "PROCESSING"
-    SHIPPED = "SHIPPED"
-    DELIVERED = "DELIVERED"
-    CANCELLED = "CANCELLED"
-
-
-class BulkPaymentStatus(str, Enum):
-    PENDING = "PENDING"
-    PAID = "PAID"
-    PARTIAL = "PARTIAL"
-    FAILED = "FAILED"
+class BulkOrderStatusEnum(str, Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+    converted = "converted"
+    processing = "processing"
+    confirmed = "confirmed"
+    shipped = "shipped"
+    delivered = "delivered"
+    cancelled = "cancelled"
 
 
 # =====================================================
-# REQUEST / INPUT SCHEMAS
+# PUBLIC BULK ORDER REQUEST SCHEMAS
 # =====================================================
 
 class BulkOrderItemCreate(BaseModel):
@@ -65,7 +40,6 @@ class BulkOrderRequestCreate(BaseModel):
     email: Optional[EmailStr] = None
     phone: str
     gst_number: Optional[str] = None
-
     state: str
     city: str
     address: str
@@ -79,36 +53,6 @@ class BulkOrderRequestCreate(BaseModel):
     items: List[BulkOrderItemCreate]
 
 
-class BulkOrderConvert(BaseModel):
-    address_id: int
-
-
-class BulkRequestStatusUpdate(BaseModel):
-    status: BulkRequestStatus
-
-
-class BulkOrderStatusUpdate(BaseModel):
-    status: BulkOrderStatus
-
-
-class OrganizationCreate(BaseModel):
-    name: str
-    contact_person: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    gst_number: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: Optional[str] = "India"
-    postal_code: Optional[str] = None
-    is_active: Optional[bool] = True
-
-
-# =====================================================
-# RESPONSE / OUTPUT SCHEMAS
-# =====================================================
-
 class BulkOrderRequestResponse(BaseModel):
     success: bool
     message: str
@@ -117,55 +61,43 @@ class BulkOrderRequestResponse(BaseModel):
     organization_id: int
 
 
-class BulkRequestItemOut(BaseModel):
-    id: int
-    variant_id: Optional[int] = None
-    quantity: int
-    requested_price: Optional[Decimal] = None
-    quoted_price: Optional[Decimal] = None
-    notes: Optional[str] = None
+# =====================================================
+# ADMIN ORGANIZATION SCHEMA
+# Used in admin/bulk_admin.py
+# =====================================================
 
-    class Config:
-        from_attributes = True
-
-
-class BulkRequestOut(BaseModel):
-    id: int
-    organization_id: Optional[int] = None
-    user_id: Optional[int] = None
-    request_number: str
-    status: str
-    notes: Optional[str] = None
-    expected_delivery_date: Optional[date] = None
-    created_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
-
-class BulkOrderOut(BaseModel):
-    id: int
-    order_number: str
-    organization_id: Optional[int] = None
-    total_amount: Decimal
-    status: str
-    payment_status: str
-    created_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
-
-class OrganizationOut(BaseModel):
-    id: int
+class OrganizationCreate(BaseModel):
     name: str
-    contact_person: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
+    contact_person: str
+    email: EmailStr
+    phone: str
     gst_number: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    is_active: bool
+    state: str
+    city: str
+    address: Optional[str] = None
+    postal_code: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+
+# =====================================================
+# ADMIN BULK REQUEST CONVERT SCHEMA
+# Used in admin/bulk_admin.py
+# =====================================================
+
+class BulkOrderConvert(BaseModel):
+    payment_status: Optional[str] = "pending"
+    payment_method: Optional[str] = "razorpay"
+    shipping_amount: Optional[float] = 0
+    discount_amount: Optional[float] = 0
+    is_urgent: Optional[bool] = False
+    expected_delivery_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+# =====================================================
+# ADMIN BULK ORDER STATUS UPDATE SCHEMA
+# Used in admin/bulk_admin.py
+# =====================================================
+
+class BulkOrderStatusUpdate(BaseModel):
+    status: BulkOrderStatusEnum
+    notes: Optional[str] = None

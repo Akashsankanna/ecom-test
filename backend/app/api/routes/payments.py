@@ -7,7 +7,6 @@ from app.schemas.payment import (
     RazorpayVerifyPaymentRequest,
 )
 
-# ✅ Routes import from service ONLY — never from repository directly
 from app.services.payment_service import (
     create_razorpay_order_service,
     verify_razorpay_payment_service,
@@ -17,20 +16,25 @@ router = APIRouter(prefix="/razorpay", tags=["Razorpay"])
 
 
 # =====================================================
-# CREATE ORDER
+# CREATE RAZORPAY ORDER
 # =====================================================
 
 @router.post("/create-order")
-def create_razorpay_order(data: RazorpayCreateOrderRequest):
+def create_razorpay_order(
+    data: RazorpayCreateOrderRequest,
+    db: Session = Depends(get_db),
+):
     return create_razorpay_order_service(
-        amount=data.amount,
+        db=db,
+        user_id=data.user_id,
+        address_id=data.address_id,
+        coupon_code=data.coupon_code,
         currency=data.currency,
-        receipt=data.receipt,
     )
 
 
 # =====================================================
-# VERIFY PAYMENT
+# VERIFY RAZORPAY PAYMENT
 # =====================================================
 
 @router.post("/verify-payment")

@@ -325,9 +325,8 @@ const isEditMode = ref(false)
 const editingAddressId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const paymentLoading = ref(false)
 const couponCode = ref('')
-
-const WAREHOUSE_PINCODE = '413005'
 
 const form = reactive({
   full_name: '',
@@ -410,12 +409,17 @@ function deliverToThisAddress() {
 }
 
 async function placeOrder() {
+  if (paymentLoading.value) return
+
   try {
+    paymentLoading.value = true
+
     const userId = Number(getUserId())
     const addressId = Number(selectedAddressId.value)
 
     if (!userId) {
       alert('Login required')
+      router.push('/login?redirect=/checkout/address')
       return
     }
 
@@ -429,54 +433,48 @@ async function placeOrder() {
       return
     }
 
-    // ✅ Load Razorpay
     const sdkLoaded = await loadRazorpayScript()
+
     if (!sdkLoaded) {
       alert('Razorpay load failed')
       return
     }
 
-    // ✅ Create order from backend
+    // ✅ IMPORTANT:
+    // Do NOT send frontend amount.
+    // Backend calculates amount from DB cart + coupon + stored procedure logic.
     const orderData = await createRazorpayOrder({
-      amount: Number(grandTotal.value),
-      currency: 'INR',
-      receipt: `receipt_${Date.now()}`,
-      user_id: userId
+      user_id: userId,
+      address_id: addressId,
+      coupon_code: couponCode.value || null,
+      currency: 'INR'
     })
 
     console.log('ORDER DATA =', orderData)
 
-    const razorpayOrderId =
-      orderData?.razorpay_order_id ||
-      orderData?.id ||
-      orderData?.order_id
+    const razorpayOrderId = orderData?.razorpay_order_id
+    const razorpayKey = orderData?.key_id || orderData?.key
+    const backendOrderId = orderData?.order_id
 
-    const razorpayKey =
-      orderData?.key_id ||
-      orderData?.key ||
-      orderData?.razorpay_key
-
-    if (!razorpayOrderId) {
+    if (!razorpayOrderId || !razorpayKey || !backendOrderId) {
       alert('Order creation failed')
       return
     }
 
-    // ✅ Razorpay options
     const options = {
       key: razorpayKey,
-      amount: orderData.amount,
-      currency: orderData.currency,
+      amount: orderData.amount_paise, // ✅ paise from backend
+      currency: orderData.currency || 'INR',
       name: 'Parallel',
+      description: `Order #${backendOrderId}`,
       order_id: razorpayOrderId,
 
-      // 🔥 MAIN SUCCESS HANDLER
       handler: async function (response) {
         try {
           console.log('RAZORPAY SUCCESS =', response)
 
-          // ✅ Verify payment (backend)
           const verifyRes = await verifyRazorpayPayment({
-            order_id: orderData?.order_id || orderData?.id || null,
+            order_id: backendOrderId,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_signature: response.razorpay_signature,
@@ -486,61 +484,48 @@ async function placeOrder() {
 
           console.log('VERIFY RESPONSE =', verifyRes)
 
-          // ✅ Get order id (IMPORTANT)
           const finalOrderId =
             verifyRes?.order_id ||
-            verifyRes?.id ||
-            verifyRes?.order?.id ||
-            orderData?.order_id ||
-            orderData?.id
+            backendOrderId
 
-          console.log('FINAL ORDER ID =', finalOrderId)
-
-          // ❌ DO NOT BLOCK FLOW
-          if (!finalOrderId) {
-            console.warn('No order id → redirecting to orders')
-            router.push('/orders')
-            return
-          }
-
-          // ✅ SUCCESS
           alert('Payment Successful')
 
-          // ✅ Clear cart
           cart.value = []
           localStorage.removeItem('cart')
           localStorage.removeItem('guest_id')
-
-          // ✅ Save last order (optional)
+          localStorage.removeItem('guest_uuid')
           localStorage.setItem('last_order_id', finalOrderId)
 
-          // ✅ REDIRECT (MAIN GOAL)
-          console.log('Redirecting to order confirmation...')
           router.push(`/order-confirmation/${finalOrderId}`)
-
         } catch (err) {
           console.error('VERIFY ERROR =', err)
-          console.error('VERIFY ERROR DATA =', err?.response?.data)
-
           alert(
-            err?.response?.data?.message ||
             err?.response?.data?.detail ||
+            err?.response?.data?.message ||
             'Payment verify failed'
           )
         }
+      },
+
+      prefill: {
+        name: selectedAddress.value?.full_name || '',
+        email: selectedAddress.value?.email || '',
+        contact: selectedAddress.value?.phone || ''
+      },
+
+      theme: {
+        color: '#0f6c73'
       }
     }
 
     const rzp = new window.Razorpay(options)
 
-    // ❌ Payment failure
     rzp.on('payment.failed', function (res) {
       console.error('PAYMENT FAILED =', res)
       alert(res?.error?.description || 'Payment failed')
     })
 
     rzp.open()
-
   } catch (error) {
     console.error('PLACE ORDER ERROR =', error)
     console.log('FULL ERROR =', error?.response?.data)
@@ -552,6 +537,8 @@ async function placeOrder() {
     } else {
       alert(detail || 'Something went wrong')
     }
+  } finally {
+    paymentLoading.value = false
   }
 }
 
@@ -561,7 +548,7 @@ function applyCoupon() {
     return
   }
 
-  alert(`Coupon "${couponCode.value}" applied`)
+  alert(`Coupon "${couponCode.value}" will be validated by backend during payment`)
 }
 
 function openAddAddress() {
@@ -782,12 +769,15 @@ const selectedAddress = computed(() => {
 })
 
 const totalItems = computed(() => {
-  return cart.value.reduce((sum, item) => sum + Number(item.qty || 0), 0)
+  return cart.value.reduce((sum, item) => sum + Number(item.qty || item.quantity || 0), 0)
 })
 
 const subtotal = computed(() => {
   return cart.value.reduce((sum, item) => {
-    return sum + Number(item.price || 0) * Number(item.qty || 0)
+    const qty = Number(item.qty || item.quantity || 0)
+    const price = Number(item.price || 0)
+    const customization = Number(item.customization_total || 0)
+    return sum + ((price + customization) * qty)
   }, 0)
 })
 
@@ -813,37 +803,15 @@ function loadRazorpayScript() {
   })
 }
 
-function getDistanceDeliveryCharge(address) {
-  if (!address?.postal_code) return 80
-
-  const selectedPin = String(address.postal_code).trim()
-  const warehousePin = String(WAREHOUSE_PINCODE).trim()
-
-  if (selectedPin === warehousePin) return 40
-  if (selectedPin.slice(0, 3) === warehousePin.slice(0, 3)) return 60
-  if (selectedPin.slice(0, 2) === warehousePin.slice(0, 2)) return 90
-  return 140
-}
-
-const deliveryCharges = computed(() => {
-  return getDistanceDeliveryCharge(selectedAddress.value)
-})
-
-const gstRate = computed(() => {
-  return subtotal.value <= 2500 ? 0.05 : 0.18
-})
-
-const gstLabel = computed(() => {
-  return subtotal.value <= 2500 ? 'Tax (GST 5%)' : 'Tax (GST 18%)'
-})
-
-const tax = computed(() => {
-  return subtotal.value * gstRate.value
-})
-
-const grandTotal = computed(() => {
-  return subtotal.value + deliveryCharges.value + tax.value
-})
+/*
+  Display only.
+  Actual final amount is calculated by backend from DB.
+*/
+const deliveryCharges = computed(() => 0)
+const gstRate = computed(() => 0)
+const gstLabel = computed(() => 'Tax/GST calculated by backend')
+const tax = computed(() => 0)
+const grandTotal = computed(() => subtotal.value)
 </script>
 
 <style scoped>

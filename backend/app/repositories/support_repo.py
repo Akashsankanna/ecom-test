@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.models.invoice import Invoice
+from app.models.invoice_model import Invoice
 from app.models.audit_log import AuditLog
 from app.models.address import Address
 from app.models.size_tax import TaxRate, SizeMaster

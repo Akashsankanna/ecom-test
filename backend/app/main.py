@@ -21,6 +21,7 @@ from app.api.routes import tax_rate
 from app.api.routes.admin import shipment_admin
 
 from app.api.routes.reviews import router as review_router
+from app.api.routes.invoice import router as invoice_router
 
 # =====================================================
 # ADMIN ROUTES
@@ -154,7 +155,7 @@ app.include_router(orders_router)
 app.include_router(payment_webhook.router)
 app.include_router(tax_rate.router)
 app.include_router(review_router)
-
+app.include_router(invoice_router)
 
 # =====================================================
 # ADMIN ROUTERS

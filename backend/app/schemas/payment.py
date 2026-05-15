@@ -12,7 +12,7 @@ Import from:
 app.schemas.payment
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from decimal import Decimal
 from datetime import datetime
@@ -46,15 +46,6 @@ class PaymentMethod(str, Enum):
 # =====================================================
 
 class ProcessPaymentRequest(BaseModel):
-    """
-    Input for:
-    sp_process_payment(
-        p_order_id,
-        p_payment_method,
-        p_payment_status,
-        p_transaction_ref
-    )
-    """
     order_id: int
     payment_method: PaymentMethod
     status: TransactionStatus
@@ -66,10 +57,12 @@ class ProcessPaymentRequest(BaseModel):
 # =====================================================
 
 class RazorpayCreateOrderRequest(BaseModel):
-    amount: float = Field(..., gt=0)
+    # ✅ frontend should not send amount
+    # backend will calculate from cart + coupon + DB logic
+    user_id: int
+    address_id: int
+    coupon_code: Optional[str] = None
     currency: str = "INR"
-    receipt: str
-    user_id: Optional[int] = None
 
 
 class RazorpayVerifyPaymentRequest(BaseModel):
@@ -77,11 +70,10 @@ class RazorpayVerifyPaymentRequest(BaseModel):
     razorpay_payment_id: str
     razorpay_signature: str
 
-    # kept from second file
-    user_id: Optional[int] = None
-    address_id: Optional[int] = None
+    user_id: int
+    address_id: int
 
-    # compatibility with router logic
+    # optional only for compatibility
     order_id: Optional[int] = None
 
 
@@ -108,10 +100,6 @@ class TransactionOut(BaseModel):
 
 
 class PaymentViewOut(BaseModel):
-    """
-    Maps to payment_view DB view
-    transactions + orders
-    """
     transaction_id: int
     order_id: Optional[int] = None
 

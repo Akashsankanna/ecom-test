@@ -6,23 +6,47 @@ import { api } from 'boot/axios'
 
 const getAuthData = () => {
   const rawUserId = localStorage.getItem('user_id')
-  const guestUuid = localStorage.getItem('guest_uuid')
+  const rawGuestUuid = localStorage.getItem('guest_uuid')
+
+  const userId =
+    rawUserId &&
+    rawUserId !== 'null' &&
+    rawUserId !== 'undefined' &&
+    Number(rawUserId) > 0
+      ? Number(rawUserId)
+      : null
+
+  const guestUuid =
+    rawGuestUuid &&
+    rawGuestUuid !== 'null' &&
+    rawGuestUuid !== 'undefined'
+      ? rawGuestUuid
+      : null
 
   return {
-    user_id: rawUserId ? Number(rawUserId) : null,
-    guest_uuid: guestUuid || null,
+    user_id: userId,
+    guest_uuid: guestUuid,
   }
 }
 
 export const ensureGuestUuid = async () => {
-  const existingGuestUuid = localStorage.getItem('guest_uuid')
   const rawUserId = localStorage.getItem('user_id')
+  const existingGuestUuid = localStorage.getItem('guest_uuid')
 
-  if (rawUserId) {
+  if (
+    rawUserId &&
+    rawUserId !== 'null' &&
+    rawUserId !== 'undefined' &&
+    Number(rawUserId) > 0
+  ) {
     return null
   }
 
-  if (existingGuestUuid) {
+  if (
+    existingGuestUuid &&
+    existingGuestUuid !== 'null' &&
+    existingGuestUuid !== 'undefined'
+  ) {
     return existingGuestUuid
   }
 
@@ -40,10 +64,10 @@ export const ensureGuestUuid = async () => {
 const getAuthPayload = async () => {
   const auth = getAuthData()
 
+  // IMPORTANT: send only user_id OR guest_uuid, not both
   if (auth.user_id) {
     return {
       user_id: auth.user_id,
-      guest_uuid: null,
     }
   }
 
@@ -54,7 +78,6 @@ const getAuthPayload = async () => {
   }
 
   return {
-    user_id: null,
     guest_uuid: guestUuid,
   }
 }
@@ -73,6 +96,7 @@ const normalizeCartItem = (item = {}) => ({
   quantity: Number(item.quantity || 0),
   price: Number(item.price || 0),
   customization_total: Number(item.customization_total || 0),
+
   line_total: Number(
     item.line_total ??
       ((Number(item.price || 0) + Number(item.customization_total || 0)) *
@@ -93,7 +117,6 @@ const normalizeCartItem = (item = {}) => ({
 
 const normalizeCartResponse = (data = {}) => {
   const rawItems = Array.isArray(data?.items) ? data.items : []
-
   const items = rawItems.map(normalizeCartItem)
 
   return {
@@ -126,6 +149,8 @@ export const addToCart = async (payload) => {
     ...authPayload,
   }
 
+  console.log('ADD TO CART PAYLOAD:', body)
+
   const res = await api.post('/cart/add', body)
   return res.data
 }
@@ -137,7 +162,9 @@ export const getCartItems = async () => {
 
   if (auth.user_id) {
     res = await api.get('/cart/', {
-      params: { user_id: auth.user_id },
+      params: {
+        user_id: auth.user_id,
+      },
     })
   } else {
     let guestUuid = auth.guest_uuid
@@ -147,7 +174,9 @@ export const getCartItems = async () => {
     }
 
     res = await api.get('/cart/', {
-      params: { guest_uuid: guestUuid },
+      params: {
+        guest_uuid: guestUuid,
+      },
     })
   }
 
@@ -159,8 +188,11 @@ export const getCartSummary = async () => {
 
   if (auth.user_id) {
     const res = await api.get('/cart/summary', {
-      params: { user_id: auth.user_id },
+      params: {
+        user_id: auth.user_id,
+      },
     })
+
     return res.data
   }
 
@@ -171,7 +203,9 @@ export const getCartSummary = async () => {
   }
 
   const res = await api.get('/cart/summary', {
-    params: { guest_uuid: guestUuid },
+    params: {
+      guest_uuid: guestUuid,
+    },
   })
 
   return res.data
@@ -233,12 +267,20 @@ export const mergeGuestCart = async () => {
   const rawUserId = localStorage.getItem('user_id')
   const guestUuid = localStorage.getItem('guest_uuid')
 
-  if (!rawUserId || !guestUuid) {
+  const userId =
+    rawUserId &&
+    rawUserId !== 'null' &&
+    rawUserId !== 'undefined' &&
+    Number(rawUserId) > 0
+      ? Number(rawUserId)
+      : null
+
+  if (!userId || !guestUuid) {
     return null
   }
 
   const res = await api.post('/cart/merge', {
-    user_id: Number(rawUserId),
+    user_id: userId,
     guest_uuid: guestUuid,
   })
 
@@ -264,6 +306,7 @@ export async function createRazorpayOrder(payload) {
     coupon_code: payload.coupon_code || null,
     shipping_amount: Number(payload.shipping_amount || 0),
   })
+
   return response.data
 }
 
@@ -274,6 +317,7 @@ export async function verifyRazorpayPayment(payload) {
     razorpay_payment_id: payload.razorpay_payment_id,
     razorpay_signature: payload.razorpay_signature,
   })
+
   return response.data
 }
 
@@ -297,23 +341,32 @@ export const razorpayVerifyPaymentApi = verifyRazorpayPayment
 export default {
   ensureGuestUuid,
   createGuest,
+
   addToCart,
   addToCartApi,
+
   getCartItems,
   getCartApi,
+
   getCartSummary,
   getCartSummaryApi,
+
   updateCartQty,
   updateCartApi,
   updateCartItemApi,
+
   removeCartItem,
   removeCartItemApi,
   deleteCartItemApi,
+
   clearCart,
   clearCartApi,
+
   mergeGuestCart,
   mergeCartApi,
+
   getCartCount,
+
   createRazorpayOrder,
   verifyRazorpayPayment,
   razorpayCreateOrderApi,

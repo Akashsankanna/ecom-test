@@ -6,7 +6,6 @@ from sqlalchemy import (
     ForeignKey,
     text,
 )
-from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -18,58 +17,53 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # =====================================================
-    # FOREIGN KEYS
-    # =====================================================
     order_id = Column(
         Integer,
         ForeignKey("orders.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
+        index=True,
     )
 
     product_id = Column(
         Integer,
         ForeignKey("product.id"),
-        nullable=False
+        nullable=True,
+        index=True,
     )
 
     variant_id = Column(
         Integer,
         ForeignKey("product_variant.id"),
-        nullable=False
+        nullable=False,
+        index=True,
     )
 
-    # =====================================================
-    # ORDER DETAILS
-    # =====================================================
     quantity = Column(Integer, nullable=False, default=1)
 
-    price = Column(Numeric(10, 2), nullable=False)
+    # Your old backend uses price
+    price = Column(Numeric(10, 2), nullable=True)
+
+    # Your payment service / DB view may use unit_price
+    unit_price = Column(Numeric(10, 2), nullable=True)
 
     customization_total = Column(
         Numeric(10, 2),
         nullable=False,
-        server_default=text("0")
+        server_default=text("0"),
     )
 
-    # =====================================================
-    # TIMESTAMPS
-    # =====================================================
     created_at = Column(
         DateTime(timezone=True),
-        server_default=func.now()
+        server_default=func.now(),
     )
 
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
-        onupdate=func.now()
+        onupdate=func.now(),
     )
 
-    # =====================================================
-    # RELATIONSHIPS
-    # =====================================================
     order = relationship(
         "Order",
-        back_populates="items"
+        back_populates="items",
     )

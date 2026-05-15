@@ -13,49 +13,47 @@
         }"
       >
         <!-- Original Slides -->
-<div
-  class="bulk-slider__slide"
-  v-for="(slide, i) in bannerSlides"
-  :key="i"
->
-  <!-- ADD this bulk-inner wrapper like hero-inner -->
-  <div class="bulk-inner">
-    <div class="bulk-banner__content">
-      <p class="bulk-banner__eyebrow">{{ slide.eyebrow }}</p>
-      <h1 class="bulk-banner__title">{{ slide.title }}</h1>
-      <p class="bulk-banner__sub">{{ slide.sub }}</p>
-      <div class="bulk-banner__badges">
-        <span class="badge" v-for="badge in slide.badges" :key="badge">{{ badge }}</span>
-      </div>
-    </div>
-    <!-- Image now as flex sibling, not background -->
-    <div class="bulk-image-wrapper">
-      <img :src="slide.image" class="bulk-banner__img" :alt="slide.eyebrow" />
-    </div>
-  </div>
-</div>
+        <div
+          class="bulk-slider__slide"
+          v-for="(slide, i) in bannerSlides"
+          :key="i"
+        >
+          <div class="bulk-inner">
+            <div class="bulk-banner__content">
+              <p class="bulk-banner__eyebrow">{{ slide.eyebrow }}</p>
+              <h1 class="bulk-banner__title">{{ slide.title }}</h1>
+              <p class="bulk-banner__sub">{{ slide.sub }}</p>
+              <div class="bulk-banner__badges">
+                <span class="badge" v-for="badge in slide.badges" :key="badge">{{ badge }}</span>
+              </div>
+            </div>
 
-<!-- Clone slide — same structure -->
-<div class="bulk-slider__slide">
-  <div class="bulk-inner">
-    <div class="bulk-banner__content">
-      <p class="bulk-banner__eyebrow">{{ bannerSlides[0].eyebrow }}</p>
-      <h1 class="bulk-banner__title">{{ bannerSlides[0].title }}</h1>
-      <p class="bulk-banner__sub">{{ bannerSlides[0].sub }}</p>
-      <div class="bulk-banner__badges">
-        <span class="badge" v-for="badge in bannerSlides[0].badges" :key="badge">{{ badge }}</span>
-      </div>
-    </div>
-    <div class="bulk-image-wrapper">
-      <img :src="bannerSlides[0].image" class="bulk-banner__img" :alt="bannerSlides[0].eyebrow" />
-    </div>
-  </div>
-</div>
-            
+            <div class="bulk-image-wrapper">
+              <img :src="slide.image" class="bulk-banner__img" :alt="slide.eyebrow" />
+            </div>
           </div>
-    
+        </div>
 
-      <!-- CHANGE: Fade overlay — same as home page, flashes white on each slide change -->
+        <!-- Clone slide -->
+        <div class="bulk-slider__slide">
+          <div class="bulk-inner">
+            <div class="bulk-banner__content">
+              <p class="bulk-banner__eyebrow">{{ bannerSlides[0].eyebrow }}</p>
+              <h1 class="bulk-banner__title">{{ bannerSlides[0].title }}</h1>
+              <p class="bulk-banner__sub">{{ bannerSlides[0].sub }}</p>
+              <div class="bulk-banner__badges">
+                <span class="badge" v-for="badge in bannerSlides[0].badges" :key="badge">{{ badge }}</span>
+              </div>
+            </div>
+
+            <div class="bulk-image-wrapper">
+              <img :src="bannerSlides[0].image" class="bulk-banner__img" :alt="bannerSlides[0].eyebrow" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fade overlay -->
       <div class="bulk-fade-overlay" :class="{ 'is-fading': isBannerFading }"></div>
 
       <!-- Dot Indicators -->
@@ -71,11 +69,11 @@
 
     </div>
 
-    <!---- MAIN CONTENT----->
+    <!-- MAIN CONTENT -->
     <div class="bulk-container">
       <div class="bulk-grid">
 
-        <!---- LEFT: Why Us ----->
+        <!-- LEFT: Why Us -->
         <div class="why-card">
           <h3 class="why-card__title">Why Choose Us?</h3>
 
@@ -97,9 +95,9 @@
             <p class="trust-badge__sub">500+ Bulk Orders Delivered Successfully</p>
           </div>
 
-          <!-- HOW IT WORKS -->
           <div class="divider" />
           <h4 class="steps-title">How It Works</h4>
+
           <div v-for="(s, i) in steps" :key="i" class="step-item">
             <div class="step-item__num">{{ i + 1 }}</div>
             <div>
@@ -109,7 +107,7 @@
           </div>
         </div>
 
-        <!-- ── RIGHT: Form ──────────────────────────────────── -->
+        <!-- RIGHT: Form -->
         <div class="form-card">
           <div class="form-card__header">
             <h2 class="form-card__title">Bulk Order Request</h2>
@@ -120,7 +118,7 @@
 
           <q-form @submit.prevent="submitForm" class="bulk-form">
 
-            <!-- ── SECTION 1: Organisation -->
+            <!-- SECTION 1 -->
             <div class="form-section">
               <div class="section-header">
                 <span class="section-num">01</span>
@@ -131,61 +129,55 @@
                 <div class="form-field">
                   <p class="field-label">Organisation / Hospital Name <span class="required">*</span></p>
                   <q-input
-  v-model="form.orgName"
-  outlined
-  dense
-  maxlength="50"
-  placeholder="Enter organisation name"
-
-  @update:model-value="val => form.orgName = val.replace(/[^A-Za-z\s]/g, '')"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => /^[A-Za-z\s]+$/.test(v) || 'Only letters allowed (no numbers)',
-    v => v.length <= 50 || 'Max 50 characters allowed'
-  ]"
-/>
+                    v-model="form.orgName"
+                    outlined
+                    dense
+                    maxlength="50"
+                    placeholder="Enter organisation name"
+                    @update:model-value="val => form.orgName = val.replace(/[^A-Za-z\s]/g, '')"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => /^[A-Za-z\s]+$/.test(v) || 'Only letters allowed (no numbers)',
+                      v => v.length <= 50 || 'Max 50 characters allowed'
+                    ]"
+                  />
                 </div>
               </div>
 
               <div class="form-row form-row--2">
                 <div class="form-field">
                   <p class="field-label">Contact Person Name <span class="required">*</span></p>
-<q-input
-  v-model="form.contactName"
-  outlined
-  dense
-  maxlength="30"
-  placeholder="Enter name"
-
-  @update:model-value="val => form.contactName = val.replace(/[^A-Za-z\s]/g, '')"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => v.length <= 30 || 'Max 30 characters allowed'
-  ]"
-/>
+                  <q-input
+                    v-model="form.contactName"
+                    outlined
+                    dense
+                    maxlength="30"
+                    placeholder="Enter name"
+                    @update:model-value="val => form.contactName = val.replace(/[^A-Za-z\s]/g, '')"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => v.length <= 30 || 'Max 30 characters allowed'
+                    ]"
+                  />
                 </div>
+
                 <div class="form-field">
                   <p class="field-label">Email Address <span class="required">*</span></p>
-                 <q-input
-  v-model="form.email"
-  outlined
-  dense
-  type="email"
-  maxlength="40"
-  placeholder="Enter email"
-
-  @update:model-value="val => {
-    // remove unwanted special characters
-    form.email = val.replace(/[^a-zA-Z0-9.@]/g, '')
-  }"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => /^[a-zA-Z0-9.]+@gmail\.com$/.test(v) || 'Only valid @gmail.com allowed'
-  ]"
-/>
+                  <q-input
+                    v-model="form.email"
+                    outlined
+                    dense
+                    type="email"
+                    maxlength="40"
+                    placeholder="Enter email"
+                    @update:model-value="val => {
+                      form.email = val.replace(/[^a-zA-Z0-9.@]/g, '')
+                    }"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => /^[a-zA-Z0-9.]+@gmail\.com$/.test(v) || 'Only valid @gmail.com allowed'
+                    ]"
+                  />
                 </div>
               </div>
 
@@ -193,24 +185,30 @@
                 <div class="form-field">
                   <p class="field-label">Phone Number <span class="required">*</span></p>
                   <q-input
-  v-model="form.phone"
-  outlined
-  dense
-  maxlength="10"
-  inputmode="numeric"
-  placeholder="Enter 10 digit phone number"
-
-  @update:model-value="val => form.phone = val.replace(/[^0-9]/g, '')"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => v.length === 10 || 'Must be exactly 10 digits'
-  ]"
-/>
+                    v-model="form.phone"
+                    outlined
+                    dense
+                    maxlength="10"
+                    inputmode="numeric"
+                    placeholder="Enter 10 digit phone number"
+                    @update:model-value="val => form.phone = val.replace(/[^0-9]/g, '')"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => v.length === 10 || 'Must be exactly 10 digits'
+                    ]"
+                  />
                 </div>
+
                 <div class="form-field">
                   <p class="field-label">Country <span class="required">*</span></p>
-                  <q-select v-model="form.country" :options="countryOptions" outlined dense placeholder="Select country" :rules="[v => !!v || 'Required']" />
+                  <q-select
+                    v-model="form.country"
+                    :options="countryOptions"
+                    outlined
+                    dense
+                    placeholder="Select country"
+                    :rules="[v => !!v || 'Required']"
+                  />
                 </div>
               </div>
 
@@ -218,31 +216,30 @@
                 <div class="form-field">
                   <p class="field-label">State <span class="required">*</span></p>
                   <q-select
-  v-model="form.state"
-  :options="stateOptions"
-  outlined
-  dense
-  :display-value="form.state || 'Select state'"
-  :rules="[v => !!v || 'Required']"
-/>
+                    v-model="form.state"
+                    :options="stateOptions"
+                    outlined
+                    dense
+                    :display-value="form.state || 'Select state'"
+                    :rules="[v => !!v || 'Required']"
+                  />
                 </div>
+
                 <div class="form-field">
                   <p class="field-label">City <span class="required">*</span></p>
                   <q-input
-  v-model="form.city"
-  outlined
-  dense
-  maxlength="20"
-  placeholder="Enter city"
-
-  @update:model-value="val => form.city = val.replace(/[^A-Za-z\s]/g, '')"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => /^[A-Za-z\s]+$/.test(v) || 'Only letters allowed',
-    v => v.length <= 30 || 'Max 30 characters allowed'
-  ]"
-/>
+                    v-model="form.city"
+                    outlined
+                    dense
+                    maxlength="20"
+                    placeholder="Enter city"
+                    @update:model-value="val => form.city = val.replace(/[^A-Za-z\s]/g, '')"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => /^[A-Za-z\s]+$/.test(v) || 'Only letters allowed',
+                      v => v.length <= 30 || 'Max 30 characters allowed'
+                    ]"
+                  />
                 </div>
               </div>
 
@@ -250,20 +247,20 @@
                 <div class="form-field">
                   <p class="field-label">Address <span class="required">*</span></p>
                   <q-input
-  v-model="form.address"
-  type="textarea"
-  outlined
-  dense
-  rows="2"
-  autogrow
-  maxlength="50"
-  counter
-  placeholder="Enter full address"
-  :rules="[
-    v => !!v || 'Required',
-    v => v.length <= 50 || 'Max 50 characters allowed'
-  ]"
-/>
+                    v-model="form.address"
+                    type="textarea"
+                    outlined
+                    dense
+                    rows="2"
+                    autogrow
+                    maxlength="50"
+                    counter
+                    placeholder="Enter full address"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => v.length <= 50 || 'Max 50 characters allowed'
+                    ]"
+                  />
                 </div>
               </div>
 
@@ -271,42 +268,39 @@
                 <div class="form-field">
                   <p class="field-label">GST Number</p>
                   <q-input
-  v-model="form.gst"
-  outlined
-  dense
-  maxlength="15"
-  placeholder="Enter GST number"
+                    v-model="form.gst"
+                    outlined
+                    dense
+                    maxlength="15"
+                    placeholder="Enter GST number"
+                    @update:model-value="val => form.gst = val.toUpperCase().replace(/[^0-9A-Z]/g, '')"
+                    :rules="[
+                      v => !v || v.length === 15 || 'GST must be 15 characters',
+                      v => !v || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v) || 'Invalid GST format'
+                    ]"
+                  />
+                </div>
 
-  @update:model-value="val => form.gst = val.toUpperCase().replace(/[^0-9A-Z]/g, '')"
-
-  :rules="[
-    v => !v || v.length === 15 || 'GST must be 15 characters',
-    v => !v || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v) || 'Invalid GST format'
-  ]"
-/>
-</div>
                 <div class="form-field">
                   <p class="field-label">Postal Code</p>
                   <q-input
-  v-model="form.postalCode"
-  outlined
-  dense
-  maxlength="6"
-  inputmode="numeric"
-  placeholder="Enter 6 digit PIN code"
-
-  @update:model-value="val => form.postalCode = val.replace(/[^0-9]/g, '')"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => /^[1-9][0-9]{5}$/.test(v) || 'Enter valid 6-digit PIN code'
-  ]"
-/>
+                    v-model="form.postalCode"
+                    outlined
+                    dense
+                    maxlength="6"
+                    inputmode="numeric"
+                    placeholder="Enter 6 digit PIN code"
+                    @update:model-value="val => form.postalCode = val.replace(/[^0-9]/g, '')"
+                    :rules="[
+                      v => !!v || 'Required',
+                      v => /^[1-9][0-9]{5}$/.test(v) || 'Enter valid 6-digit PIN code'
+                    ]"
+                  />
                 </div>
               </div>
             </div>
 
-            <!-- ── SECTION 2: Order Details ─────────────────── -->
+            <!-- SECTION 2 -->
             <div class="form-section">
               <div class="section-header">
                 <span class="section-num">02</span>
@@ -316,7 +310,12 @@
               <div v-for="(product, index) in form.products" :key="index" class="product-row-card">
                 <div class="product-row-header">
                   <span class="product-row-label">Order {{ index + 1 }}</span>
-                  <button v-if="form.products.length > 1" type="button" class="remove-product-btn" @click="removeProduct(index)">
+                  <button
+                    v-if="form.products.length > 1"
+                    type="button"
+                    class="remove-product-btn"
+                    @click="removeProduct(index)"
+                  >
                     <q-icon name="close" size="16px" /> Remove
                   </button>
                 </div>
@@ -324,114 +323,204 @@
                 <div class="product-fields-row">
                   <div class="product-field">
                     <p class="field-label">Product Category <span class="required">*</span></p>
-                    <q-select v-model="product.category" :options="categories" outlined dense placeholder="Select" :rules="[v => !!v || 'Required']" />
+                    <q-select
+                      v-model="product.category"
+                      :options="categories"
+                      outlined
+                      dense
+                      placeholder="Select"
+                      :rules="[v => !!v || 'Required']"
+                    />
                   </div>
+
                   <div class="product-field product-field--qty">
                     <p class="field-label">Quantity <span class="required">*</span></p>
-                   <q-input
-  v-model.number="product.quantity"
-  type="number"
-  outlined
-  dense
-  min="1"
-  placeholder="Qty"
-
-  @update:model-value="val => {
-    if (val < 1) product.quantity = null
-  }"
-
-  :rules="[
-    v => !!v || 'Required',
-    v => v > 0 || 'Must be greater than 0'
-  ]"
-/>
+                    <q-input
+                      v-model.number="product.quantity"
+                      type="number"
+                      outlined
+                      dense
+                      min="1"
+                      placeholder="Qty"
+                      @update:model-value="val => {
+                        if (val < 1) product.quantity = null
+                      }"
+                      :rules="[
+                        v => !!v || 'Required',
+                        v => v > 0 || 'Must be greater than 0'
+                      ]"
+                    />
                   </div>
+
                   <div class="product-field">
                     <p class="field-label">Size <span class="required">*</span></p>
-                    <q-select v-model="product.size" :options="['XS','S','M','L','XL','XXL','3XL']" outlined dense placeholder="Size" :rules="[v => !!v || 'Required']" />
+                    <q-select
+                      v-model="product.size"
+                      :options="sizeOptions"
+                      outlined
+                      dense
+                      placeholder="Size"
+                      :rules="[v => !!v || 'Required']"
+                    />
                   </div>
+
                   <div class="product-field">
                     <p class="field-label">Gender <span class="required">*</span></p>
-                    <q-select v-model="product.gender" :options="genderOptions" outlined dense placeholder="Gender" :rules="[v => !!v || 'Required']" />
+                    <q-select
+                      v-model="product.gender"
+                      :options="genderOptions"
+                      outlined
+                      dense
+                      placeholder="Gender"
+                      :rules="[v => !!v || 'Required']"
+                    />
                   </div>
+
                   <div class="product-field product-field--color">
                     <p class="field-label">Color</p>
-                    <q-select v-model="product.colors" :options="colorOptions" outlined dense multiple use-chips placeholder="Select colors" />
+                    <q-select
+                      v-model="product.colors"
+                      :options="colorOptions"
+                      outlined
+                      dense
+                      multiple
+                      use-chips
+                      option-label="name"
+                      option-value="name"
+                      emit-value
+                      map-options
+                      placeholder="Select colors"
+                    />
                   </div>
                 </div>
               </div>
 
               <div class="add-product-wrap">
-                <q-btn flat icon="add_circle" label="Add Product" color="teal" no-caps class="add-product-btn" @click="addProduct" />
+                <q-btn
+                  flat
+                  icon="add_circle"
+                  label="Add Product"
+                  color="teal"
+                  no-caps
+                  class="add-product-btn"
+                  @click="addProduct"
+                />
               </div>
 
               <div class="form-row form-row--2" style="margin-top: 18px;">
                 <div class="form-field">
                   <p class="field-label">Expected Delivery Date <span class="required">*</span></p>
-                  <q-input v-model="form.deliveryDate" outlined dense type="date" :rules="[v => !!v || 'Required']" />
+                  <q-input
+                    v-model="form.deliveryDate"
+                    outlined
+                    dense
+                    type="date"
+                    :rules="[v => !!v || 'Required']"
+                  />
                 </div>
+
                 <div class="form-field">
                   <p class="field-label">Fabric Preference</p>
-                  <q-select v-model="form.fabric" :options="fabrics" outlined dense :display-value="form.fabric ? form.fabric : 'Select fabric'" />
+                  <q-select
+                    v-model="form.fabric"
+                    :options="fabrics"
+                    outlined
+                    dense
+                    :display-value="form.fabric ? form.fabric : 'Select fabric'"
+                  />
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-field">
                   <p class="field-label">Additional Requirements</p>
-                  <q-input v-model="form.notes" outlined dense type="textarea" rows="3" placeholder="Any specific requirements, packaging notes, etc." />
+                  <q-input
+                    v-model="form.notes"
+                    outlined
+                    dense
+                    type="textarea"
+                    rows="3"
+                    placeholder="Any specific requirements, packaging notes, etc."
+                  />
                 </div>
               </div>
             </div>
 
-             <!-- ── SECTION 3: Branding & Customization ─────── -->
+            <!-- SECTION 3 -->
             <div class="form-section">
               <div class="section-header">
                 <span class="section-num">03</span>
                 <p class="section-title">Branding & Customization</p>
               </div>
 
-              <q-toggle v-model="form.hasCustomization" label="Add Custom Branding to this Order" color="teal" class="custom-toggle" />
+              <q-toggle
+                v-model="form.hasCustomization"
+                label="Add Custom Branding to this Order"
+                color="teal"
+                class="custom-toggle"
+              />
 
               <transition name="slide-down">
-  <div v-if="form.hasCustomization">
-
-    <ProductCustomization
-      @customization-updated="handleCustomizationUpdate"
-      @customization-applied="handleCustomizationApply"
-    />
-
-  </div>
-</transition>
+                <div v-if="form.hasCustomization">
+                  <ProductCustomization
+                    @customization-updated="handleCustomizationUpdate"
+                    @customization-applied="handleCustomizationApply"
+                  />
+                </div>
+              </transition>
             </div>
 
-            <!-- ── SECTION 4: Quote Summary ──────────────────── -->
+            <!-- SECTION 4 -->
             <div v-if="totalQuantity >= 20" class="quote-summary">
               <div class="quote-header">
                 <q-icon name="receipt_long" color="teal" size="20px" />
                 <span>Estimated Quote Summary</span>
               </div>
+
               <div class="quote-rows">
-                <div class="quote-row"><span>Total Quantity</span><span>{{ totalQuantity }} pcs</span></div>
-                <div class="quote-row"><span>Estimated Price / Piece</span><span>₹{{ estimatedPricePerPiece }}</span></div>
-                <div v-if="form.hasCustomization && customizationCost > 0" class="quote-row">
-                  <span>Customization / Piece</span><span>+₹{{ customizationCost }}</span>
+                <div class="quote-row">
+                  <span>Total Quantity</span>
+                  <span>{{ totalQuantity }} pcs</span>
                 </div>
+
+                <div class="quote-row">
+                  <span>Estimated Price / Piece</span>
+                  <span>₹{{ estimatedPricePerPiece }}</span>
+                </div>
+
+                <div v-if="form.hasCustomization && customizationCost > 0" class="quote-row">
+                  <span>Customization / Piece</span>
+                  <span>+₹{{ customizationCost }}</span>
+                </div>
+
                 <div class="quote-row quote-row--total">
-                  <span>Estimated Total</span><span>₹{{ estimatedTotal.toLocaleString('en-IN') }}</span>
+                  <span>Estimated Total</span>
+                  <span>₹{{ estimatedTotal.toLocaleString('en-IN') }}</span>
                 </div>
               </div>
+
               <p class="quote-note">
                 <span class="required">*</span> Final pricing will be confirmed by our team after reviewing your request.
                 50% advance required to begin production.
               </p>
             </div>
 
-            <!-- ── SUBMIT----- -->
+            <!-- SUBMIT -->
             <div class="form-submit">
-              <q-btn type="submit" label="Submit Bulk Request" color="teal" class="submit-btn" :loading="submitting" unelevated no-caps>
-                <template #loading><q-spinner-dots size="20px" /></template>
+              <q-btn
+                type="submit"
+                label="Submit Bulk Request"
+                color="teal"
+                class="submit-btn"
+                :loading="submitting"
+                unelevated
+                no-caps
+              >
+                <template #loading>
+                  <q-spinner-dots size="20px" />
+                </template>
               </q-btn>
+
               <p class="submit-note">Our team will reach out within 24 business hours</p>
             </div>
 
@@ -441,14 +530,29 @@
       </div>
     </div>
 
-    <!-- ── SUCCESS DIALOG ──────────────────────────────────── -->
+    <!-- SUCCESS DIALOG -->
     <q-dialog v-model="successDialog">
       <div class="success-card">
         <div class="success-icon">✅</div>
         <h3>Request Submitted!</h3>
-        <p>Your bulk order request has been received.<br />Request ID: <strong>{{ requestNumber }}</strong></p>
-        <p class="success-sub">Our team will contact you at <strong>{{ form.email }}</strong> within 24 business hours with a quote.</p>
-        <q-btn label="Done" color="teal" unelevated no-caps v-close-popup class="done-btn" />
+
+        <p>
+          Your bulk order request has been received.<br />
+          Request ID: <strong>{{ requestNumber }}</strong>
+        </p>
+
+        <p class="success-sub">
+          Our team will contact you at <strong>{{ form.email }}</strong> within 24 business hours with a quote.
+        </p>
+
+        <q-btn
+          label="Done"
+          color="teal"
+          unelevated
+          no-caps
+          v-close-popup
+          class="done-btn"
+        />
       </div>
     </q-dialog>
 
@@ -469,12 +573,11 @@ export default {
 
   data() {
     return {
-      // ── SLIDER STATE ────────────────────────────────────────
       currentBannerSlide: 0,
       isBannerTransitioning: true,
+      isBannerFading: false,
       bannerInterval: null,
 
-      // ── BANNER SLIDES ───────────────────────────────────────
       bannerSlides: [
         {
           image: bannerImg('bulkorder2.png'),
@@ -503,11 +606,7 @@ export default {
       successDialog: false,
       requestNumber: '',
       logoPreview: null,
-
-      // backend loading
       loadingOptions: false,
-
-      // keep raw category rows from backend
       categoryRows: [],
 
       form: {
@@ -525,7 +624,13 @@ export default {
         deliveryDate: '',
         notes: '',
         products: [
-          { category: null, quantity: null, size: null, gender: null, colors: [] }
+          {
+            category: null,
+            quantity: null,
+            size: null,
+            gender: null,
+            colors: []
+          }
         ],
         hasCustomization: false,
         customTypes: [],
@@ -557,12 +662,31 @@ export default {
         Canada: ['Ontario', 'Quebec', 'British Columbia', 'Alberta']
       },
 
-      // these are shown in UI
-      categories: ['Collar Scrub Suit', 'V-Neck Scrub Suit', 'Doctor Apron', 'Nurse Uniform', 'OT Gown', 'Mixed'],
+      categories: [
+        'Collar Scrub Suit',
+        'V-Neck Scrub Suit',
+        'Doctor Apron',
+        'Nurse Uniform',
+        'OT Gown',
+        'Mixed'
+      ],
+
       fabrics: ['Apollo', 'Aqua', 'Cottex', 'Avenue', 'Poly-Cotton'],
+
       genderOptions: ['Men', 'Women', 'Mixed (Men + Women)'],
-      colorOptions: ['Black', 'Navy Blue', 'Royal Blue', 'Green', 'Dark Grey', 'Brown', 'Maroon', 'White'],
-      sizeOptions: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+
+      colorOptions: [
+        { name: 'Black' },
+        { name: 'Navy Blue' },
+        { name: 'Royal Blue' },
+        { name: 'Green' },
+        { name: 'Dark Grey' },
+        { name: 'Brown' },
+        { name: 'Maroon' },
+        { name: 'White' }
+      ],
+
+      sizeOptions: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
 
       customizationTypes: [
         { id: 1, name: 'Embroidery', icon: '🪡', price: 150, requiresText: true, requiresLogo: false },
@@ -618,30 +742,32 @@ export default {
 
     requiresText() {
       return this.form.customTypes.some(id => {
-        const t = this.customizationTypes.find(c => c.id === id)
-        return t && t.requiresText
+        const type = this.customizationTypes.find(item => item.id === id)
+        return type && type.requiresText
       })
     },
 
     requiresLogo() {
       return this.form.customTypes.some(id => {
-        const t = this.customizationTypes.find(c => c.id === id)
-        return t && t.requiresLogo
+        const type = this.customizationTypes.find(item => item.id === id)
+        return type && type.requiresLogo
       })
     },
 
     customizationCost() {
       return this.form.customTypes.reduce((sum, id) => {
-        const t = this.customizationTypes.find(c => c.id === id)
-        return sum + (t ? t.price : 0)
+        const type = this.customizationTypes.find(item => item.id === id)
+        return sum + (type ? type.price : 0)
       }, 0)
     },
 
     estimatedPricePerPiece() {
       const qty = this.totalQuantity
+
       if (qty >= 200) return 700
       if (qty >= 100) return 750
       if (qty >= 50) return 820
+
       return 900
     },
 
@@ -661,7 +787,6 @@ export default {
   },
 
   methods: {
-    // ── API LOAD ──────────────────────────────────────────────
     async loadBulkOptions() {
       try {
         this.loadingOptions = true
@@ -678,7 +803,13 @@ export default {
         }
 
         if (Array.isArray(data?.colors) && data.colors.length) {
-          this.colorOptions = data.colors
+          this.colorOptions = data.colors.map(color => ({
+            id: color.id,
+            name: color.name,
+            label: color.name,
+            value: color.name,
+            hex_code: color.hex_code
+          }))
         }
 
         if (Array.isArray(data?.genders) && data.genders.length) {
@@ -695,7 +826,6 @@ export default {
       }
     },
 
-    // ── SLIDER METHODS ────────────────────────────────────────
     startBannerSlider() {
       this.bannerInterval = setInterval(this.nextBannerSlide, 4000)
     },
@@ -705,12 +835,19 @@ export default {
     },
 
     nextBannerSlide() {
+      this.isBannerFading = true
+
+      setTimeout(() => {
+        this.isBannerFading = false
+      }, 350)
+
       this.currentBannerSlide += 1
 
       if (this.currentBannerSlide === this.bannerSlides.length) {
         setTimeout(() => {
           this.isBannerTransitioning = false
           this.currentBannerSlide = 0
+
           setTimeout(() => {
             this.isBannerTransitioning = true
           }, 50)
@@ -725,7 +862,6 @@ export default {
       this.startBannerSlider()
     },
 
-    // ── FORM METHODS ──────────────────────────────────────────
     addProduct() {
       this.form.products.push({
         category: null,
@@ -741,21 +877,59 @@ export default {
       this.form.products.splice(index, 1)
     },
 
+    handleCustomizationUpdate(data) {
+      if (!data || typeof data !== 'object') return
+
+      if (Array.isArray(data.customTypes)) {
+        this.form.customTypes = data.customTypes
+      }
+
+      if (Array.isArray(data.positions)) {
+        this.form.positions = data.positions
+      }
+
+      if (typeof data.customText === 'string') {
+        this.form.customText = data.customText
+      }
+
+      if (typeof data.customNotes === 'string') {
+        this.form.customNotes = data.customNotes
+      }
+
+      if (data.logoFile) {
+        this.form.logoFile = data.logoFile
+      }
+    },
+
+    handleCustomizationApply(data) {
+      this.handleCustomizationUpdate(data)
+    },
+
     toggleCustomType(id) {
-      const idx = this.form.customTypes.indexOf(id)
-      if (idx === -1) this.form.customTypes.push(id)
-      else this.form.customTypes.splice(idx, 1)
+      const index = this.form.customTypes.indexOf(id)
+
+      if (index === -1) {
+        this.form.customTypes.push(id)
+      } else {
+        this.form.customTypes.splice(index, 1)
+      }
     },
 
     togglePosition(id) {
-      const idx = this.form.positions.indexOf(id)
-      if (idx === -1) this.form.positions.push(id)
-      else this.form.positions.splice(idx, 1)
+      const index = this.form.positions.indexOf(id)
+
+      if (index === -1) {
+        this.form.positions.push(id)
+      } else {
+        this.form.positions.splice(index, 1)
+      }
     },
 
-    handleLogoUpload(e) {
-      const file = e.target.files[0]
+    handleLogoUpload(event) {
+      const file = event.target.files[0]
+
       if (!file) return
+
       this.form.logoFile = file
       this.logoPreview = URL.createObjectURL(file)
     },
@@ -777,9 +951,61 @@ export default {
 
     getPrimaryColor(colors) {
       if (Array.isArray(colors)) {
-        return colors.length ? colors[0] : null
+        const firstColor = colors.length ? colors[0] : null
+
+        if (!firstColor) return null
+
+        if (typeof firstColor === 'string') {
+          return firstColor
+        }
+
+        return firstColor.name || firstColor.label || firstColor.value || String(firstColor.id || '')
       }
-      return colors || null
+
+      if (!colors) return null
+
+      if (typeof colors === 'string') {
+        return colors
+      }
+
+      return colors.name || colors.label || colors.value || String(colors.id || '')
+    },
+
+    getErrorMessage(error) {
+      const detail = error?.response?.data?.detail
+
+      if (typeof detail === 'string') {
+        return detail
+      }
+
+      if (detail?.message) {
+        let message = detail.message
+
+        if (
+          Array.isArray(detail.available_variants) &&
+          detail.available_variants.length
+        ) {
+          message += '\n\nAvailable variants:\n' + detail.available_variants.join('\n')
+        }
+
+        return message
+      }
+
+      if (Array.isArray(detail)) {
+        return detail
+          .map(item => item.msg || item.message || JSON.stringify(item))
+          .join('\n')
+      }
+
+      if (typeof detail === 'object' && detail !== null) {
+        return JSON.stringify(detail, null, 2)
+      }
+
+      if (error?.message) {
+        return error.message
+      }
+
+      return 'Failed to submit bulk request'
     },
 
     buildAdditionalRequirements() {
@@ -791,12 +1017,12 @@ export default {
 
       if (this.form.hasCustomization) {
         const selectedTypes = this.customizationTypes
-          .filter(t => this.form.customTypes.includes(t.id))
-          .map(t => t.name)
+          .filter(type => this.form.customTypes.includes(type.id))
+          .map(type => type.name)
 
         const selectedPositions = this.positions
-          .filter(p => this.form.positions.includes(p.id))
-          .map(p => p.name)
+          .filter(position => this.form.positions.includes(position.id))
+          .map(position => position.name)
 
         parts.push('Branding Required: Yes')
 
@@ -837,6 +1063,11 @@ export default {
         return false
       }
 
+      if (!this.form.email?.trim()) {
+        alert('Email is required')
+        return false
+      }
+
       if (!this.form.phone?.trim()) {
         alert('Phone number is required')
         return false
@@ -862,6 +1093,11 @@ export default {
         return false
       }
 
+      if (!this.form.deliveryDate) {
+        alert('Expected delivery date is required')
+        return false
+      }
+
       if (!this.form.products.length) {
         alert('Add at least one product')
         return false
@@ -882,6 +1118,11 @@ export default {
 
         if (!product.size) {
           alert(`Please select size for Order ${i + 1}`)
+          return false
+        }
+
+        if (!product.gender) {
+          alert(`Please select gender for Order ${i + 1}`)
           return false
         }
       }
@@ -905,7 +1146,13 @@ export default {
         deliveryDate: '',
         notes: '',
         products: [
-          { category: null, quantity: null, size: null, gender: null, colors: [] }
+          {
+            category: null,
+            quantity: null,
+            size: null,
+            gender: null,
+            colors: []
+          }
         ],
         hasCustomization: false,
         customTypes: [],
@@ -940,19 +1187,20 @@ export default {
           fabric_preference: this.form.fabric || null,
           additional_requirements: this.buildAdditionalRequirements(),
           branding_required: !!this.form.hasCustomization,
-          items: this.form.products.map((p, index) => {
-            const categoryId = this.getCategoryIdByName(p.category)
+
+          items: this.form.products.map((product, index) => {
+            const categoryId = this.getCategoryIdByName(product.category)
 
             if (!categoryId) {
-              throw new Error(`Category ID not found for Order ${index + 1}: ${p.category}`)
+              throw new Error(`Category ID not found for Order ${index + 1}: ${product.category}`)
             }
 
             return {
               product_category_id: Number(categoryId),
-              quantity: Number(p.quantity),
-              size: p.size,
-              gender: p.gender || null,
-              color: this.getPrimaryColor(p.colors)
+              quantity: Number(product.quantity),
+              size: product.size,
+              gender: product.gender || null,
+              color: this.getPrimaryColor(product.colors)
             }
           })
         }
@@ -966,11 +1214,7 @@ export default {
         this.resetForm()
       } catch (error) {
         console.error('SUBMIT BULK REQUEST ERROR:', error)
-        alert(
-          error?.response?.data?.detail ||
-          error?.message ||
-          'Failed to submit bulk request'
-        )
+        alert(this.getErrorMessage(error))
       } finally {
         this.submitting = false
       }

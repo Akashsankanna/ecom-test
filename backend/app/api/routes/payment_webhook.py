@@ -1,105 +1,185 @@
 from fastapi import APIRouter, Request, Header, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import hmac
 import hashlib
 import json
 import os
+from decimal import Decimal, ROUND_HALF_UP
 
 from app.db.session import get_db
-from app.models.order import Order 
-from app.models.payment_transaction import PaymentTransaction
 
 router = APIRouter(prefix="/razorpay", tags=["Razorpay Webhook"])
 
 WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET")
 
 
+def round_money(value) -> Decimal:
+    return Decimal(str(value or 0)).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP
+    )
+
+
 @router.post("/webhook")
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: str = Header(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    from app.models.cart import Cart
-    from app.models.cart_item import CartItem
-
     body = await request.body()
 
     if not WEBHOOK_SECRET:
         raise HTTPException(status_code=500, detail="Webhook secret missing")
 
     generated_signature = hmac.new(
-        WEBHOOK_SECRET.encode(),
+        WEBHOOK_SECRET.encode("utf-8"),
         body,
-        hashlib.sha256
+        hashlib.sha256,
     ).hexdigest()
 
     if not hmac.compare_digest(generated_signature, x_razorpay_signature or ""):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
-    payload = json.loads(body)
+    payload = json.loads(body.decode("utf-8"))
     event = payload.get("event")
 
-    if event == "payment.captured":
-        payment = payload["payload"]["payment"]["entity"]
+    if event not in ["payment.captured", "order.paid", "payment.failed"]:
+        return {"success": True, "status": "ignored", "event": event}
 
-        razorpay_payment_id = payment.get("id")
-        razorpay_order_id = payment.get("order_id")
-        amount = payment.get("amount", 0) / 100
+    payment = (
+        payload.get("payload", {})
+        .get("payment", {})
+        .get("entity", {})
+    )
 
-        notes = payment.get("notes", {})
-        order_id = notes.get("order_id")
+    if not payment:
+        return {"success": True, "status": "ignored_no_payment_entity"}
 
-        if not order_id:
-            raise HTTPException(status_code=400, detail="Order id missing in payment notes")
+    razorpay_payment_id = payment.get("id")
+    razorpay_order_id = payment.get("order_id")
+    amount = round_money(Decimal(str(payment.get("amount", 0))) / Decimal("100"))
 
-        order = db.query(Order).filter(Order.id == int(order_id)).first()
+    if not razorpay_payment_id or not razorpay_order_id:
+        return {"success": True, "status": "missing_payment_or_order_id"}
 
-        if not order:
-            raise HTTPException(status_code=404, detail="Order not found")
+    try:
+        if event == "payment.failed":
+            db.execute(
+                text("""
+                    UPDATE orders
+                    SET payment_status = 'FAILED',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE razorpay_order_id = :razorpay_order_id
+                      AND payment_status = 'PENDING'
+                """),
+                {"razorpay_order_id": razorpay_order_id},
+            )
+            db.commit()
+            return {"success": True, "status": "payment_failed"}
 
-        if order.payment_status == "PAID":
-            return {"status": "already_processed"}
+        existing_txn = db.execute(
+            text("""
+                SELECT id
+                FROM transactions
+                WHERE transaction_ref = :payment_id
+                   OR razorpay_payment_id = :payment_id
+                LIMIT 1
+            """),
+            {"payment_id": razorpay_payment_id},
+        ).mappings().first()
 
-        order.payment_status = "PAID"
-        order.status = "CONFIRMED"
-        order.transaction_id = razorpay_payment_id
+        if existing_txn:
+            return {
+                "success": True,
+                "status": "already_processed",
+                "transaction_id": existing_txn["id"],
+            }
 
-        transaction = PaymentTransaction(
-            order_id=order.id,
-            user_id=order.user_id,
-            transaction_ref=razorpay_payment_id,
-            razorpay_order_id=razorpay_order_id,
-            amount=amount,
-            status="SUCCESS",
-            payment_method="RAZORPAY"
+        order_row = db.execute(
+            text("""
+                SELECT id, remaining_amount, final_amount, total_amount
+                FROM orders
+                WHERE razorpay_order_id = :razorpay_order_id
+                LIMIT 1
+                FOR UPDATE
+            """),
+            {"razorpay_order_id": razorpay_order_id},
+        ).mappings().first()
+
+        if not order_row:
+            return {
+                "success": True,
+                "status": "order_not_found",
+                "razorpay_order_id": razorpay_order_id,
+            }
+
+        payable_amount = round_money(
+            order_row["remaining_amount"]
+            or order_row["final_amount"]
+            or order_row["total_amount"]
+            or amount
         )
 
-        db.add(transaction)
+        transaction_row = db.execute(
+            text("""
+                INSERT INTO transactions (
+                    order_id,
+                    amount,
+                    payment_method,
+                    status,
+                    transaction_ref,
+                    payment_gateway,
+                    gateway_transaction_id,
+                    currency,
+                    gateway_response,
+                    created_at
+                )
+                VALUES (
+                    :order_id,
+                    :amount,
+                    'RAZORPAY',
+                    'SUCCESS',
+                    :transaction_ref,
+                    'RAZORPAY',
+                    :gateway_transaction_id,
+                    'INR',
+                    CAST(:gateway_response AS jsonb),
+                    CURRENT_TIMESTAMP
+                )
+                RETURNING id
+            """),
+            {
+                "order_id": order_row["id"],
+                "amount": payable_amount,
+                "transaction_ref": razorpay_payment_id,
+                "gateway_transaction_id": razorpay_order_id,
+                "gateway_response": json.dumps(payload),
+            },
+        ).mappings().first()
 
-        cart = db.query(Cart).filter(Cart.user_id == order.user_id).first()
-
-        if cart:
-            db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
+        db.execute(
+            text("""
+                UPDATE orders
+                SET transaction_id = :transaction_id,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :order_id
+            """),
+            {
+                "transaction_id": transaction_row["id"],
+                "order_id": order_row["id"],
+            },
+        )
 
         db.commit()
 
-        return {"status": "payment_captured"}
+        return {
+            "success": True,
+            "status": "payment_processed",
+            "transaction_id": transaction_row["id"],
+            "order_id": order_row["id"],
+        }
 
-    elif event == "payment.failed":
-        payment = payload["payload"]["payment"]["entity"]
-
-        notes = payment.get("notes", {})
-        order_id = notes.get("order_id")
-
-        if order_id:
-            order = db.query(Order).filter(Order.id == int(order_id)).first()
-
-            if order:
-                order.payment_status = "FAILED"
-                order.status = "PAYMENT_FAILED"
-                db.commit()
-
-        return {"status": "payment_failed"}
-
-    return {"status": "ignored"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
