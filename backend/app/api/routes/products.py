@@ -15,6 +15,8 @@ def to_float(value):
 @router.get("/")
 def get_products(
     gender: Optional[str] = Query(None),   # men / women / unisex
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db)
 ):
     products_sql = """
@@ -41,9 +43,10 @@ def get_products(
           AND p.is_active = TRUE
           AND (:gender IS NULL OR LOWER(p.gender) = LOWER(:gender))
         ORDER BY p.id
+        LIMIT :limit OFFSET :skip
     """
 
-    product_rows = db.execute(text(products_sql), {"gender": gender}).fetchall()
+    product_rows = db.execute(text(products_sql), {"gender": gender, "limit": limit, "skip": skip}).fetchall()
 
     product_ids = [r.product_id for r in product_rows]
     if not product_ids:

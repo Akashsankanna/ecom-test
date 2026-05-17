@@ -22,8 +22,9 @@ from app.services.user_service import (
 
 router = APIRouter()
 
-CALLBACK_URL = "http://localhost:8000/auth/callback"
-FRONTEND_URL = "http://localhost:9000"
+import os
+CALLBACK_URL = os.getenv("AUTH_CALLBACK_URL", "http://localhost:8000/auth/callback")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:9000")
 
 
 # =========================
@@ -151,7 +152,7 @@ def login_with_password(data: PasswordLogin, db: Session = Depends(get_db)):
 
     keycloak_id = userinfo.get("sub")
     email = userinfo.get("email")
-    name = userinfo.get("name") or (email.split("@")[0] if email else "User")
+    name = userinfo.get("name") or (email.split("@")[0] if email and "@" in email else "User")
     email_verified = userinfo.get("email_verified", False)
 
     if not keycloak_id or not email:
@@ -254,7 +255,7 @@ def auth_callback(code: str, db: Session = Depends(get_db)):
     userinfo       = userinfo_res.json()
     keycloak_id    = userinfo.get("sub")
     email          = userinfo.get("email")
-    name           = userinfo.get("name") or (email.split("@")[0] if email else "User")
+    name           = userinfo.get("name") or (email.split("@")[0] if email and "@" in email else "User")
     email_verified = userinfo.get("email_verified", False)
 
     # Save to DB if new

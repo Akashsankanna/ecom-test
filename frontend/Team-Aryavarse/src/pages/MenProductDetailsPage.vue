@@ -134,7 +134,7 @@
             :key="index"
           >
             <i :class="item.icon"></i>
-            <p class="delivery-title" v-html="item.title"></p>
+            <p class="delivery-title">{{ item.title }}</p>
           </div>
         </div>
 

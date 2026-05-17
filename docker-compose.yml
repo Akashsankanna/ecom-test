@@ -25,10 +25,10 @@ services:
 
   backend:
     build:
-      context: ./Backend
+      context: ./backend
     container_name: team_backend
     env_file:
-      - ./Backend/.env
+      - ./backend/.env
     environment:
       DB_HOST: db
       KEYCLOAK_SERVER_URL: http://keycloak:8080
@@ -39,10 +39,10 @@ services:
       - keycloak
     restart: unless-stopped
 
-  frontend:
+  adminpanel:
     build:
-      context: ./frontend/Team-Aryavarse
-    container_name: team_frontend
+      context: ./adminpanel
+    container_name: team_adminpanel
     ports:
       - "8081:80"
     depends_on:

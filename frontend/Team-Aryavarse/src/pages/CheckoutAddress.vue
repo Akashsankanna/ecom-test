@@ -11,19 +11,19 @@
         </div>
 
         <div
-          v-for="address in addresses"
-          :key="address.id"
-          class="address-card"
-          :class="{ 'address-card--active': selectedAddressId === address.id }"
-        >
+  v-for="address in addresses"
+  :key="address.id"
+  class="address-card"
+  :class="{ 'address-card--active': selectedAddressId === address.id }"
+  @click="selectAddress(address)"
+>
           <div class="address-top">
             <div class="address-left">
               <q-radio
-                :model-value="selectedAddressId"
-                :val="address.id"
-                color="teal"
-                @update:model-value="selectAddress(address)"
-              />
+  :model-value="selectedAddressId"
+  :val="address.id"
+  color="teal"
+/>
 
               <div class="address-content">
                 <div class="address-name-row">
@@ -54,13 +54,7 @@
             </div>
           </div>
 
-          <button
-            v-if="selectedAddressId === address.id"
-            class="deliver-btn"
-            @click="deliverToThisAddress"
-          >
-            Deliver to this Address
-          </button>
+
         </div>
 
         <div v-if="!addresses.length && !loading" class="empty-address-box">
@@ -859,6 +853,7 @@ const grandTotal = computed(() => subtotal.value)
   background: #eef8f8;
   border: 1px solid transparent;
   border-radius: 14px;
+  cursor: pointer;
   padding: 22px;
   margin-bottom: 18px;
 }

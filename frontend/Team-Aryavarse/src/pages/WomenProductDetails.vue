@@ -153,7 +153,7 @@
             :key="index"
           >
             <i :class="item.icon"></i>
-            <p class="delivery-title" v-html="item.title"></p>
+            <p class="delivery-title">{{ item.title }}</p>
           </div>
         </div>
 
@@ -673,7 +673,7 @@ const discountPercent = computed(() => {
   return Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100)
 })
 
-//me added 
+//me added
 const productTag = computed(() => {
   return product.value?.tag ||
     product.value?.category_name ||

@@ -126,7 +126,7 @@ def get_product_reviews(
 def admin_get_all_reviews(
     product_id: Optional[int] = Query(None),
     is_approved: Optional[bool] = Query(None),
-    limit: int = Query(100),
+    limit: int = Query(100, ge=1, le=500),
 
     db: Session = Depends(get_db),
 

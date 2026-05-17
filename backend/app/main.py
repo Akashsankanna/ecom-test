@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from app.db.session import get_db
 from app.db import base_class  # model registration side-effect
@@ -80,35 +81,36 @@ print("MAIN.PY LOADED")
 # CORS
 # =====================================================
 
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:9000,http://localhost:9001,http://127.0.0.1:9000,http://127.0.0.1:9001").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        # local frontend
-        "http://localhost:9000",
-        "http://localhost:9001",
-        "http://127.0.0.1:9000",
-        "http://127.0.0.1:9001",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://127.0.0.1:8081",
-
-        # LAN devices
-        "http://192.168.1.11:9001",
-        "http://192.168.100.55:9000",
-        "http://192.168.100.50:8081",
-        "http://192.168.1.30:8081",
-
-        # tunnels
-        "https://gttw6tjg-9000.inc1.devtunnels.ms",
-        "https://bureau-agenda-packets-from.trycloudflare.com",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =====================================================
+# RATE LIMITING
+# =====================================================
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(Exception, lambda request, exc: {"detail": str(exc)})
+
+# Global rate limit: 1000 requests per minute per IP
+from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request, exc):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Please try again later."},
+    )
 
 # =====================================================
 # ROOT / HEALTH
@@ -204,7 +206,13 @@ import requests
 from app.core.config import settings
 
 
+_cached_public_key = None
+
 def get_public_key() -> str:
+    global _cached_public_key
+    if _cached_public_key:
+        return _cached_public_key
+
     try:
         url = (
             f"{settings.KEYCLOAK_SERVER_URL}"
@@ -216,11 +224,12 @@ def get_public_key() -> str:
 
         public_key = res.json()["public_key"]
 
-        return (
+        _cached_public_key = (
             "-----BEGIN PUBLIC KEY-----\n"
             f"{public_key}\n"
             "-----END PUBLIC KEY-----"
         )
+        return _cached_public_key
 
     except Exception as e:
         raise RuntimeError(
@@ -228,14 +237,11 @@ def get_public_key() -> str:
         )
 
 
-PUBLIC_KEY = get_public_key()
-
-
 def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(
             token,
-            PUBLIC_KEY,
+            get_public_key(),
             algorithms=["RS256"],
             audience="account",
             options={"verify_exp": True},
