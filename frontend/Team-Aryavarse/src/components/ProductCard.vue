@@ -287,5 +287,5 @@ const getFabricDescription = (
 </script>
 
 <style scoped lang="scss">
-@use '../css/productcard.scss';
+@use 'src/css/productcard.scss' as *;
 </style>
