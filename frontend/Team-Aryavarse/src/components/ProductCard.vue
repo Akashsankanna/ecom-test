@@ -65,7 +65,7 @@
       <div class="price-row"  @click="$emit('go-to-product', product)">
       <!---dynamic--->
         <p class="price">₹ {{ formatPrice(product.price) }}</p>
-        
+
       </div>
 
     </div>
@@ -287,5 +287,5 @@ const getFabricDescription = (
 </script>
 
 <style scoped lang="scss">
-@import 'src/css/productcard.scss';
+@use '../css/productcard.scss';
 </style>
